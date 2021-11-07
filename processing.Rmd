@@ -40,15 +40,23 @@ merge_temp <- do.call(merge, x)
 #plot(m)
 ```
 
+<<<<<<< HEAD
 # Use extract function 
 Do the equivalent of QGIS's zonal stats. Calculate the mean of each census tract. Join the dataframe with mean temperatures to the census tracts shapefile. 
+=======
+Use extract function to do the equivalent of QGIS's zonal stats. Calculate the mean of each census tract. Join the dataframe with mean temperatures to the census tracts shapefile. 
+>>>>>>> 38aebbc701612844b0b85c13d7ca9ca262c4ff72
 https://www.neonscience.org/resources/learning-hub/tutorials/dc-crop-extract-raster-data-r
 ```{r}
 temp_ex <- raster::extract(x=merge_temp, y=tracts, fun=mean, df=TRUE)
 temp_ex <- rename(temp_ex,OBJECTID = ID,  mean_temp =test)
 tracts_jn <- left_join(tracts, temp_ex)
 ```
+<<<<<<< HEAD
 # Plot the mean temp for each census tract
+=======
+Plot the mean temp for each census tract
+>>>>>>> 38aebbc701612844b0b85c13d7ca9ca262c4ff72
 ```{r}
 tmap_mode("view")
 
