@@ -1,0 +1,51 @@
+---
+title: "Processing"
+author: "Rose Determan"
+date: "11/7/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+pacman::p_load(sf, stars,raster,rgdal,tmap)
+
+getwd()
+#setwd('..')
+```
+
+# Import Census Tracts
+```{r}
+#https://data.boston.gov/dataset/7156ac97-670d-4b9f-8070-6a1264e5fb91/resource/1721fbb7-ee56-4a61-9e1b-2f2342d202d1/download/census2020_tracts.zip
+tracts <- st_read("Census2020_Tracts/Census2020_tracts.shp")
+```
+
+# Import Landsat Temperature Raster
+```{r}
+#https://doi.org/10.5066/P960F8OC
+#https://doi.org/10.5066/P960F8OC
+
+fp1 <- "Surface_Temp/LC08_CU_030005_20210812_20210822_02_ST/LC08_CU_030005_20210812_20210822_02_ST_B10.TIF"
+temp1=raster(fp1)
+
+fp2 <- "Surface_Temp/LC08_CU_030006_20210812_20210822_02_ST/LC08_CU_030006_20210812_20210822_02_ST_B10.TIF"
+temp2=raster(fp2)
+
+#merge the two rasters 
+x <- list(temp1, temp2)
+names(x) <- c("x", "y")
+x$filename <- 'test.tif'
+x$overwrite <- TRUE
+merge_temp <- do.call(merge, x)
+
+#plot to double check the merge
+#plot(m)
+```
+
+Use extract function to do the equivalent of QGIS's zonal stats. Calculate the mean of each census tract
+```{r}
+temp_shp <- extract(x=merge_temp, y=tracts, fun=mean)
+st_write(temp_shp, "mean_temp.shp")
+
+```
+
+
