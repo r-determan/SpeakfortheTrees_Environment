@@ -40,28 +40,41 @@ merge_temp <- do.call(merge, x)
 #plot(m)
 ```
 
-<<<<<<< HEAD
+
+# Import PM 2.5 raster
+```{r}
+fp3 <- "PM25/V4NA03_PM25_NA_201801_201812-RH35-NoNegs/V4NA03_PM25_NA_201801_201812-RH35-NoNegs.asc"
+pm2.5 <- raster(fp3)
+```
+
 # Use extract function 
 Do the equivalent of QGIS's zonal stats. Calculate the mean of each census tract. Join the dataframe with mean temperatures to the census tracts shapefile. 
-=======
-Use extract function to do the equivalent of QGIS's zonal stats. Calculate the mean of each census tract. Join the dataframe with mean temperatures to the census tracts shapefile. 
->>>>>>> 38aebbc701612844b0b85c13d7ca9ca262c4ff72
 https://www.neonscience.org/resources/learning-hub/tutorials/dc-crop-extract-raster-data-r
 ```{r}
+# Temperature
 temp_ex <- raster::extract(x=merge_temp, y=tracts, fun=mean, df=TRUE)
 temp_ex <- rename(temp_ex,OBJECTID = ID,  mean_temp =test)
 tracts_jn <- left_join(tracts, temp_ex)
+
+
+# PM 2.5
+pm_ex <- raster::extract(x=pm2.5, y=tracts, fun=mean, df=TRUE)
+pm_ex <- rename(pm_ex,OBJECTID = ID,  mean_pm25 =test)
+tracts_jn <- left_join(tracts_jn, pm_ex)
 ```
-<<<<<<< HEAD
+
 # Plot the mean temp for each census tract
-=======
-Plot the mean temp for each census tract
->>>>>>> 38aebbc701612844b0b85c13d7ca9ca262c4ff72
 ```{r}
 tmap_mode("view")
-
  tm_shape(tracts_jn)+
     tm_polygons("mean_temp") + 
     tm_borders(col="#000000", lwd=0.2)
 ```
 
+```{r}
+tmap_mode("view")
+ tm_shape(tracts_jn)+
+    tm_polygons("mean_pm25") + 
+    tm_borders(col="#000000", lwd=0.2)
+
+```
