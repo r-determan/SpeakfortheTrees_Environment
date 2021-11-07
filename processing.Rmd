@@ -58,10 +58,14 @@ tracts_jn <- left_join(tracts, temp_ex)
 
 
 # PM 2.5
-pm_ex <- raster::extract(x=pm2.5, y=tracts, fun=mean, df=TRUE)
-pm_ex <- rename(pm_ex,OBJECTID = ID,  mean_pm25 =test)
+pm_ex <- raster::extract(x=pm2.5, y=tracts_jn, fun=mean, df=TRUE)
+pm_ex <- rename(pm_ex,OBJECTID = ID,  mean_pm25 =V4NA03_PM25_NA_201801_201812.RH35.NoNegs)
 tracts_jn <- left_join(tracts_jn, pm_ex)
 ```
+
+
+
+
 
 # Plot the mean temp for each census tract
 ```{r}
