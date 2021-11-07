@@ -7,10 +7,9 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pacman::p_load(sf, stars,raster,rgdal,tmap)
+pacman::p_load(sf, stars,raster,rgdal,tmap, magrittr)
 
 getwd()
-#setwd('..')
 ```
 
 # Import Census Tracts
@@ -41,11 +40,20 @@ merge_temp <- do.call(merge, x)
 #plot(m)
 ```
 
-Use extract function to do the equivalent of QGIS's zonal stats. Calculate the mean of each census tract
+# Use extract function 
+Do the equivalent of QGIS's zonal stats. Calculate the mean of each census tract. Join the dataframe with mean temperatures to the census tracts shapefile. 
+https://www.neonscience.org/resources/learning-hub/tutorials/dc-crop-extract-raster-data-r
 ```{r}
-temp_shp <- extract(x=merge_temp, y=tracts, fun=mean)
-st_write(temp_shp, "mean_temp.shp")
-
+temp_ex <- raster::extract(x=merge_temp, y=tracts, fun=mean, df=TRUE)
+temp_ex <- rename(temp_ex,OBJECTID = ID,  mean_temp =test)
+tracts_jn <- left_join(tracts, temp_ex)
 ```
+# Plot the mean temp for each census tract
+```{r}
+tmap_mode("view")
 
+ tm_shape(tracts_jn)+
+    tm_polygons("mean_temp") + 
+    tm_borders(col="#000000", lwd=0.2)
+```
 
