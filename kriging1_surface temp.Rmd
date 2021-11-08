@@ -1,0 +1,149 @@
+---
+title: "kriging"
+author: "environment"
+date: "11/7/2021"
+output: html_document
+---
+# Upload needed packages and source 'processing' file
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sp) # spatial point data frames
+library(gstat) # variogram estimation
+library(tmap)
+```
+
+# From 'processing' file
+```{r}
+tracts <- st_read("/Users/christinasun/Desktop/Census/Census2020_BlockGroups.shp")
+fp1 <- "/Users/christinasun/Desktop/speak for the tree/LC08_CU_030005_20210812_20210822_02_ST_B10.TIF"
+temp1=raster(fp1)
+
+fp2 <- "/Users/christinasun/Desktop/speak for the tree/LC08_CU_030006_20210812_20210822_02_ST_B10.TIF"
+temp2=raster(fp2)
+
+#merge the two rasters 
+x <- list(temp1, temp2)
+names(x) <- c("x", "y")
+x$filename <- 'test.tif'
+x$overwrite <- TRUE
+merge_temp <- do.call(merge, x)
+# Temperature
+temp_ex <- raster::extract(x=merge_temp, y=tracts, fun=mean, df=TRUE)
+temp_ex <- rename(temp_ex,OBJECTID = ID,  mean_temp =test)
+tracts_jn <- left_join(tracts, temp_ex)
+
+tmap_mode("view")
+ tm_shape(tracts_jn)+
+    tm_polygons("mean_temp") + 
+    tm_borders(col="#000000", lwd=0.2)
+```
+
+# Fuctions from Luis's
+```{r}
+# Kriging
+
+# Helper functions
+spherical_variogram <- function (n, ps, r) function (h) {
+  h <- h / r
+  n + ps * ifelse(h < 1, 1.5 * h - .5 * h ^ 3, 1)
+}
+
+gaussian_variogram <- function (n, ps, r)
+  function (h) n + ps * (1 - exp(-(h / r) ^ 2))
+
+# solves `A * x = v` where `C = chol(A)` is the Cholesky factor:
+chol_solve <- function (C, v) backsolve(C, backsolve(C, v, transpose = TRUE)) # the solution of triangular system.The result will be a vector if 'x' is a vector and a matrix if 'x' is a matrix.
+
+kriging_smooth_spherical <- function (formula, data, ...) {
+  v <- variogram(formula, data)
+  v_fit <- fit.variogram(v, vgm("Sph", ...))
+  v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
+
+  Sigma <- v_f(as.matrix(dist(coordinates(data)))) # semivariogram
+  Sigma <- sum(v_fit$psill) - Sigma # prior variance
+  tau2 <- v_fit$psill[1] # residual variance
+  C <- chol(tau2 * diag(nrow(data)) + Sigma)
+  y <- model.frame(formula, data)[, 1] # response
+  x <- model.matrix(formula, data)
+  # generalized least squares:
+  beta <- coef(lm.fit(backsolve(C, x, transpose = TRUE),
+                      backsolve(C, y, transpose = TRUE))) # prior mean
+
+  Sigma_inv <- chol2inv(chol(Sigma))
+  C <- chol(Sigma_inv + diag(nrow(data)) / tau2)
+  # posterior mean (smoother):
+  mu <- drop(chol_solve(C, y / tau2 + Sigma_inv %*% x %*% beta))
+  list(smooth = mu, prior_mean = beta)
+}
+
+```
+
+# Surface temperature
+```{r}
+data(tracts_jn)
+coordinates(tracts_jn) <- ~ x + y
+proj4string(tracts_jn) <- CRS("+init=epsg:28992")
+tracts_jn$response <- log(tracts_jn$mean_temp)
+
+#'tm_shape':specify the shape object;'tm_bubble':draw bubble map
+tm_shape(tracts_jn) +
+  tm_bubbles(col = "response", palette = "-RdYlBu", size = .3, alpha = .5)
+
+v <- variogram(log(mean_temp) ~ 1, tracts_jn)
+v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
+v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
+
+# check variogram and covariance
+op <- par(mfrow = c(1, 2))
+h <- seq(0, 1600, length = 100)
+plot(v$dist, v$gamma,  pch = 19, col = "gray",
+     xlab = "distance", ylab = "semivariogram")
+lines(h, v_f(h))
+abline(v = v_fit$range[2], col = "gray")
+plot(h, sum(v_fit$psill) - v_f(h), type = "l",
+     xlab = "distance", ylab = "covariogram",
+     ylim = c(0, sum(v_fit$psill)))
+points(0, sum(v_fit$psill), pch = 19)
+abline(v = v_fit$range[2], col = "gray")
+par(op)
+
+# check smoothing
+ks <- kriging_smooth_spherical(log(mean_temp) ~ 1, tracts_jn)
+y <- tracts_jn$response
+op <- par(mfrow = c(1, 2))
+plot(ks$smooth, y); abline(0, 1, col = "red")
+plot(ks$smooth, type = "l", ylab = "y")
+points(y, pch = 19, col = "gray")
+abline(h = ks$prior_mean)
+par(op)
+
+tracts_jn$smooth <- ks$smooth
+breaks <- seq(4.5, 8, by = .5)
+tmap_mode("plot")
+tmap_arrange(
+  tm_shape(tracts_jn) +
+    tm_bubbles(col = "response", palette = "-RdYlBu", size = .3, breaks = breaks),
+  tm_shape(tracts_jn) +
+    tm_bubbles(col = "smooth", palette = "-RdYlBu", size = .3, breaks = breaks)
+)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
