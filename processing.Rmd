@@ -7,7 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-pacman::p_load(sf, stars,raster,rgdal,tmap, magrittr)
+pacman::p_load(sf, stars,raster,rgdal,tmap, magrittr, dplyr)
 
 getwd()
 ```
@@ -44,6 +44,8 @@ merge_temp <- do.call(merge, x)
 # Import PM 2.5 raster
 ```{r}
 fp3 <- "PM25/V4NA03_PM25_NA_201801_201812-RH35-NoNegs/V4NA03_PM25_NA_201801_201812-RH35-NoNegs.asc"
+
+
 pm2.5 <- raster(fp3)
 ```
 
