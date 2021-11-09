@@ -15,7 +15,7 @@ library(geosphere)
 
 # From 'processing' file
 ```{r}
-env <- st_read("env.shp")
+env <- st_read("env_blockgroups/env_blockgroups.shp")
 env<-st_centroid(env)
 ```
 
