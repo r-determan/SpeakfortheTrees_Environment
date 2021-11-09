@@ -40,7 +40,6 @@ kriging_smooth_spherical <- function (formula, data, ...) {
   v <- variogram(formula, data)
   v_fit <- fit.variogram(v, vgm("Sph", ...))
   v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
-
   Sigma <- v_f(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)) # semivariogram
   Sigma <- sum(v_fit$psill) - Sigma # prior variance
   tau2 <- v_fit$psill[1] # residual variance
@@ -104,14 +103,15 @@ tmap_arrange(
     tm_bubbles(col = "smooth", palette = "-RdYlBu", size = .3, breaks = breaks)
 )
 ```
+
+
 # PM2.5
 ```{r}
 #'tm_shape':specify the shape object;'tm_bubble':draw bubble map
-tm_shape(env) +
-  tm_bubbles(col = "mean_pm25", palette = "-RdYlBu", size = .3, alpha = .75)
+#tm_shape(env) +
+#  tm_bubbles(col = "mean_pm25", palette = "-RdYlBu", size = .3, alpha = .75)
 
 env <- env[!is.na(env$mean_pm25),]
-
 
 v <- variogram(mean_pm25 ~ 1, env)
 v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
@@ -130,9 +130,44 @@ plot(h, sum(v_fit$psill) - v_f(h), type = "l",
 points(0, sum(v_fit$psill), pch = 19)
 abline(v = v_fit$range[2], col = "gray")
 par(op)
+```
 
+
+```{r}
+formula <- mean_pm25 ~ 1
+data <- env
+
+v <- variogram(formula, data)
+v_fit <- fit.variogram(v, vgm("Sph"))
+v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
+#Sigma <- v_f(as.matrix(dist(coordinates(data)))) # semivariogram
+Sigma <- v_f(as.matrix(dist(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)))) # semivariogram
+Sigma <- sum(v_fit$psill) - Sigma # prior variance
+tau2 <- v_fit$psill[1] # residual variance
+
+C <- chol(tau2 * diag(nrow(data)) + Sigma)
+y <- model.frame(formula, data)[, 1] # response
+x <- model.matrix(formula, data)
+# generalized least squares:
+beta <- coef(lm.fit(backsolve(C, x, transpose = TRUE),
+                      backsolve(C, y, transpose = TRUE))) # prior mean
+
+Sigma_inv <- chol2inv(chol(Sigma))
+C <- chol(Sigma_inv + diag(nrow(data)) / tau2)
+# posterior mean (smoother):
+mu <- drop(chol_solve(C, y / tau2 + Sigma_inv %*% x %*% beta))
+list(smooth = mu, prior_mean = beta)
+
+```
+
+
+
+```{r}
 # check smoothing
 ks <- kriging_smooth_spherical(mean_pm25~ 1, env)
+
+
+
 y <- env$mean_temp
 op <- par(mfrow = c(1, 2))
 plot(ks$smooth, y); abline(0, 1, col = "red")
