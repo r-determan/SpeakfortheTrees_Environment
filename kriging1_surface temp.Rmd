@@ -40,7 +40,7 @@ kriging_smooth_spherical <- function (formula, data, ...) {
   v_fit <- fit.variogram(v, vgm("Sph", ...))
   v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
 
-  Sigma <- v_f(as.matrix(dist(coordinates(data)))) # semivariogram
+  Sigma <- v_f(matrix(unlist(data$geometry), ncol = 10, byrow = TRUE)) # semivariogram
   Sigma <- sum(v_fit$psill) - Sigma # prior variance
   tau2 <- v_fit$psill[1] # residual variance
   C <- chol(tau2 * diag(nrow(data)) + Sigma)
