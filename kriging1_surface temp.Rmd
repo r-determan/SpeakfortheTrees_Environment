@@ -11,11 +11,12 @@ library(sp) # spatial point data frames
 library(gstat) # variogram estimation
 library(tmap)
 library(geosphere)
+library(sf)
 ```
 
 # From 'processing' file
 ```{r}
-env <- st_read("env.shp")
+env <- st_read("env_blockgroups/env_blockgroups.shp")
 env<-st_centroid(env)
 ```
 
@@ -40,7 +41,7 @@ kriging_smooth_spherical <- function (formula, data, ...) {
   v_fit <- fit.variogram(v, vgm("Sph", ...))
   v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
 
-  Sigma <- v_f(matrix(unlist(data$geometry), ncol = 10, byrow = TRUE)) # semivariogram
+  Sigma <- v_f(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)) # semivariogram
   Sigma <- sum(v_fit$psill) - Sigma # prior variance
   tau2 <- v_fit$psill[1] # residual variance
   C <- chol(tau2 * diag(nrow(data)) + Sigma)
@@ -63,7 +64,7 @@ kriging_smooth_spherical <- function (formula, data, ...) {
 ```{r}
 #'tm_shape':specify the shape object;'tm_bubble':draw bubble map
 tm_shape(env) +
-  tm_bubbles(col = "mean_temp", palette = "-RdYlBu", size = .3, alpha = .5)
+  tm_bubbles(col = "mean_temp", palette = "-RdYlBu", size = .3, alpha = .75)
 
 v <- variogram(mean_temp ~ 1, env)
 v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
@@ -85,6 +86,53 @@ par(op)
 
 # check smoothing
 ks <- kriging_smooth_spherical(mean_temp~ 1, env)
+y <- env$mean_temp
+op <- par(mfrow = c(1, 2))
+plot(ks$smooth, y); abline(0, 1, col = "red")
+plot(ks$smooth, type = "l", ylab = "y")
+points(y, pch = 19, col = "gray")
+abline(h = ks$prior_mean)
+par(op)
+
+env$smooth <- ks$smooth
+breaks <- seq(4.5, 8, by = .5)
+tmap_mode("plot")
+tmap_arrange(
+  tm_shape(env) +
+    tm_bubbles(col = "response", palette = "-RdYlBu", size = .3, breaks = breaks),
+  tm_shape(env) +
+    tm_bubbles(col = "smooth", palette = "-RdYlBu", size = .3, breaks = breaks)
+)
+```
+# PM2.5
+```{r}
+#'tm_shape':specify the shape object;'tm_bubble':draw bubble map
+tm_shape(env) +
+  tm_bubbles(col = "mean_pm25", palette = "-RdYlBu", size = .3, alpha = .75)
+
+env <- env[!is.na(env$mean_pm25),]
+
+
+v <- variogram(mean_pm25 ~ 1, env)
+v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
+v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
+
+# check variogram and covariance
+op <- par(mfrow = c(1, 2))
+h <- seq(0, 1600, length = 100)
+plot(v$dist, v$gamma,  pch = 19, col = "gray",
+     xlab = "distance", ylab = "semivariogram")
+lines(h, v_f(h))
+abline(v = v_fit$range[2], col = "gray")
+plot(h, sum(v_fit$psill) - v_f(h), type = "l",
+     xlab = "distance", ylab = "covariogram",
+     ylim = c(0, sum(v_fit$psill)))
+points(0, sum(v_fit$psill), pch = 19)
+abline(v = v_fit$range[2], col = "gray")
+par(op)
+
+# check smoothing
+ks <- kriging_smooth_spherical(mean_pm25~ 1, env)
 y <- env$mean_temp
 op <- par(mfrow = c(1, 2))
 plot(ks$smooth, y); abline(0, 1, col = "red")
