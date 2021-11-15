@@ -37,10 +37,13 @@ gaussian_variogram <- function (n, ps, r)
 chol_solve <- function (C, v) backsolve(C, backsolve(C, v, transpose = TRUE)) # the solution of triangular system.The result will be a vector if 'x' is a vector and a matrix if 'x' is a matrix.
 
 kriging_smooth_spherical <- function (formula, data, ...) {
+  # formula <- mean_pm25 ~ 1
+  # data <- env
   v <- variogram(formula, data)
-  v_fit <- fit.variogram(v, vgm("Sph", ...))
+  v_fit <- fit.variogram(v, vgm("Sph"))
   v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
-  Sigma <- v_f(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)) # semivariogram
+  #Sigma <- v_f(as.matrix(dist(coordinates(data)))) # previous code
+  Sigma <- v_f(as.matrix(dist(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)))) # semivariogram
   Sigma <- sum(v_fit$psill) - Sigma # prior variance
   tau2 <- v_fit$psill[1] # residual variance
   C <- chol(tau2 * diag(nrow(data)) + Sigma)
@@ -59,10 +62,12 @@ kriging_smooth_spherical <- function (formula, data, ...) {
 
 
 kriging_smooth_gaussian <- function (formula, data, ...) {
+  # formula <- mean_pm25 ~ 1
+  # data <- env
   v <- variogram(formula, data)
   v_fit <- fit.variogram(v, vgm("Gau"))
   v_f <- gaussian_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
-  Sigma <- v_f(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)) # semivariogram
+  Sigma <- v_f(as.matrix(dist(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)))) # semivariogram
   Sigma <- sum(v_fit$psill) - Sigma # prior variance
   tau2 <- v_fit$psill[1] # residual variance
   C <- chol(tau2 * diag(nrow(data)) + Sigma)
@@ -80,9 +85,58 @@ kriging_smooth_gaussian <- function (formula, data, ...) {
 
 ```
 
+```{r}
+env <- env[!is.na(env$mean_pm25),]
+
+v <- variogram(mean_pm25 ~ 1, env)
+v_fit <- fit.variogram(v, vgm("Gau")) #'vgm':generate a variogram model or add to an existing model.
+v_f <- gaussian_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
+
+# check variogram and covariance
+op <- par(mfrow = c(1, 2))
+h <- seq(0, 26000, length = 100)
+plot(v$dist, v$gamma,  pch = 19, col = "gray",
+     xlab = "distance", ylab = "semivariogram")
+lines(h, v_f(h))
+abline(v = v_fit$range[2], col = "gray")
+plot(h, sum(v_fit$psill) - v_f(h), type = "l",
+     xlab = "distance", ylab = "covariogram",
+     ylim = c(0, sum(v_fit$psill)))
+points(0, sum(v_fit$psill), pch = 19)
+abline(v = v_fit$range[2], col = "gray")
+par(op)
+
+
+# check smoothing
+ks <- kriging_smooth_gaussian(mean_pm25~ 1, env)
+y <- env$mean_pm25
+op <- par(mfrow = c(1, 2))
+plot(ks$smooth, y); abline(0, 1, col = "red")
+plot(ks$smooth, type = "l", ylab = "y")
+points(y, pch = 19, col = "gray")
+abline(h = ks$prior_mean)
+par(op)
+
+env$smooth <- ks$smooth
+breaks <- seq(4.5, 8, by = .5)
+tmap_mode("plot")
+tmap_arrange(
+  tm_shape(env) +
+    tm_bubbles(col = "response", palette = "-RdYlBu", size = .3, breaks = breaks),
+  tm_shape(env) +
+    tm_bubbles(col = "smooth", palette = "-RdYlBu", size = .3, breaks = breaks)
+)
+```
+
+
 
 #Kriging Smooth Gaussian (outside of function)
 ```{r}
+
+gaussian_variogram <- function (n, ps, r)
+  function (h) n + ps * (1 - exp(-(h / r) ^ 2))
+
+
 formula <- mean_pm25 ~ 1
 data <- env
 
