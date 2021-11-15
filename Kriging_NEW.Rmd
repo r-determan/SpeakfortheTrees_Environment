@@ -1,0 +1,112 @@
+---
+title: "Untitled"
+author: "Rose Determan"
+date: "11/15/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sp) # spatial point data frames
+library(gstat) # variogram estimation
+library(tmap)
+library(geosphere)
+library(sf)
+
+
+env <- st_read("env_blockgroups/env_blockgroups.shp")
+env<-st_centroid(env)
+env <- env[!is.na(env$mean_pm25),]
+```
+
+```{r}
+
+# Fuctions from Luis's
+# Kriging
+
+# Helper functions
+spherical_variogram <- function (n, ps, r) function (h) {
+  h <- h / r
+  n + ps * ifelse(h < 1, 1.5 * h - .5 * h ^ 3, 1)
+}
+
+gaussian_variogram <- function (n, ps, r)
+  function (h) n + ps * (1 - exp(-(h / r) ^ 2))
+
+# solves `A * x = v` where `C = chol(A)` is the Cholesky factor:
+chol_solve <- function (C, v) backsolve(C, backsolve(C, v, transpose = TRUE)) # the solution of triangular system.The result will be a vector if 'x' is a vector and a matrix if 'x' is a matrix.
+
+kriging_smooth_spherical <- function (formula, data, ...) {
+  v <- variogram(formula, data)
+  v_fit <- fit.variogram(v, vgm("Sph", ...))
+  v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
+  Sigma <- v_f(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)) # semivariogram
+  Sigma <- sum(v_fit$psill) - Sigma # prior variance
+  tau2 <- v_fit$psill[1] # residual variance
+  C <- chol(tau2 * diag(nrow(data)) + Sigma)
+  y <- model.frame(formula, data)[, 1] # response
+  x <- model.matrix(formula, data)
+  # generalized least squares:
+  beta <- coef(lm.fit(backsolve(C, x, transpose = TRUE),
+                      backsolve(C, y, transpose = TRUE))) # prior mean
+
+  Sigma_inv <- chol2inv(chol(Sigma))
+  C <- chol(Sigma_inv + diag(nrow(data)) / tau2)
+  # posterior mean (smoother):
+  mu <- drop(chol_solve(C, y / tau2 + Sigma_inv %*% x %*% beta))
+  list(smooth = mu, prior_mean = beta)
+}
+
+
+kriging_smooth_gaussian <- function (formula, data, ...) {
+  v <- variogram(formula, data)
+  v_fit <- fit.variogram(v, vgm("Gau"))
+  v_f <- gaussian_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
+  Sigma <- v_f(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)) # semivariogram
+  Sigma <- sum(v_fit$psill) - Sigma # prior variance
+  tau2 <- v_fit$psill[1] # residual variance
+  C <- chol(tau2 * diag(nrow(data)) + Sigma)
+  y <- model.frame(formula, data)[, 1] # response
+  x <- model.matrix(formula, data)
+  # generalized least squares:
+  beta <- coef(lm.fit(backsolve(C, x, transpose = TRUE),
+                      backsolve(C, y, transpose = TRUE))) # prior mean
+
+  Sigma_inv <- chol2inv(chol(Sigma))
+  C <- chol(Sigma_inv + diag(nrow(data)) / tau2)
+  # posterior mean (smoother):
+  mu <- drop(chol_solve(C, y / tau2 + Sigma_inv %*% x %*% beta))
+  list(smooth = mu, prior_mean = beta)}
+
+```
+
+
+#Kriging Smooth Gaussian (outside of function)
+```{r}
+formula <- mean_pm25 ~ 1
+data <- env
+
+v <- variogram(formula, data)
+v_fit <- fit.variogram(v, vgm("Gau"))
+v_f <- gaussian_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
+Sigma <- v_f(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)) # semivariogram
+Sigma <- sum(v_fit$psill) - Sigma # prior variance
+tau2 <- v_fit$psill[1] # residual variance
+C <- chol(tau2 * diag(nrow(data)) + Sigma)
+y <- model.frame(formula, data)[, 1] # response
+x <- model.matrix(formula, data)
+# generalized least squares:
+beta <- coef(lm.fit(backsolve(C, x, transpose = TRUE),
+                    backsolve(C, y, transpose = TRUE))) # prior mean
+
+Sigma_inv <- chol2inv(chol(Sigma))
+C <- chol(Sigma_inv + diag(nrow(data)) / tau2)
+# posterior mean (smoother):
+mu <- drop(chol_solve(C, y / tau2 + Sigma_inv %*% x %*% beta))
+list(smooth = mu, prior_mean = beta)}
+
+
+
+#ks <- kriging_smooth_gaussian(mean_pm25~ 1, env)
+
+```
