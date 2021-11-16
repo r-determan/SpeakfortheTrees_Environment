@@ -25,6 +25,7 @@ env <- env[!is.na(env$mean_pm25),]
 # Kriging
 
 # Helper functions
+
 spherical_variogram <- function (n, ps, r) function (h) {
   h <- h / r
   n + ps * ifelse(h < 1, 1.5 * h - .5 * h ^ 3, 1)
@@ -32,6 +33,13 @@ spherical_variogram <- function (n, ps, r) function (h) {
 
 gaussian_variogram <- function (n, ps, r)
   function (h) n + ps * (1 - exp(-(h / r) ^ 2))
+
+
+exponential_variogram <- function (n, ps, r)
+  function (h) n + ps * (1 - exp(-(h / r)))
+
+
+
 
 # solves `A * x = v` where `C = chol(A)` is the Cholesky factor:
 chol_solve <- function (C, v) backsolve(C, backsolve(C, v, transpose = TRUE)) # the solution of triangular system.The result will be a vector if 'x' is a vector and a matrix if 'x' is a matrix.
@@ -83,14 +91,41 @@ kriging_smooth_gaussian <- function (formula, data, ...) {
   mu <- drop(chol_solve(C, y / tau2 + Sigma_inv %*% x %*% beta))
   list(smooth = mu, prior_mean = beta)}
 
+
+
+kriging_smooth_exponential <- function (formula, data, ...) {
+   formula <- mean_pm25 ~ 1
+   data <- env
+  v <- variogram(formula, data)
+  v_fit <- fit.variogram(v, vgm("Exp"))
+  #-----------------------#
+  #v_f <- gaussian_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
+  
+  #-----------------------#
+  Sigma <- v_f(as.matrix(dist(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)))) # semivariogram
+  Sigma <- sum(v_fit$psill) - Sigma # prior variance
+  tau2 <- v_fit$psill[1] # residual variance
+  C <- chol(tau2 * diag(nrow(data)) + Sigma)
+  y <- model.frame(formula, data)[, 1] # response
+  x <- model.matrix(formula, data)
+  # generalized least squares:
+  beta <- coef(lm.fit(backsolve(C, x, transpose = TRUE),
+                      backsolve(C, y, transpose = TRUE))) # prior mean
+
+  Sigma_inv <- chol2inv(chol(Sigma))
+  C <- chol(Sigma_inv + diag(nrow(data)) / tau2)
+  # posterior mean (smoother):
+  mu <- drop(chol_solve(C, y / tau2 + Sigma_inv %*% x %*% beta))
+  list(smooth = mu, prior_mean = beta)}
+
 ```
 
 ```{r}
 env <- env[!is.na(env$mean_pm25),]
 
 v <- variogram(mean_pm25 ~ 1, env)
-v_fit <- fit.variogram(v, vgm("Gau")) #'vgm':generate a variogram model or add to an existing model.
-v_f <- gaussian_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
+v_fit <- fit.variogram(v, vgm("Exp")) #'vgm':generate a variogram model or add to an existing model.
+v_f <- exponential_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
 
 # check variogram and covariance
 op <- par(mfrow = c(1, 2))
@@ -108,7 +143,7 @@ par(op)
 
 
 # check smoothing
-ks <- kriging_smooth_gaussian(mean_pm25~ 1, env)
+#ks <- kriging_smooth_gaussian(mean_pm25~ 1, env)
 y <- env$mean_pm25
 op <- par(mfrow = c(1, 2))
 plot(ks$smooth, y); abline(0, 1, col = "red")
