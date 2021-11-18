@@ -14,7 +14,7 @@ library(geosphere)
 library(sf)
 
 
-env <- st_read("env_blockgroups/env_blockgroups.shp")
+env <- st_read("env/env.shp")
 env<-st_centroid(env)
 env <- env[!is.na(env$mean_pm25),]
 ```
@@ -94,8 +94,8 @@ kriging_smooth_gaussian <- function (formula, data, ...) {
 
 
 kriging_smooth_exponential <- function (formula, data, ...) {
-   formula <- mean_pm25 ~ 1
-   data <- env
+  formula <- mean_pm25 ~ 1
+  data <- env
   v <- variogram(formula, data)
   v_fit <- fit.variogram(v, vgm("Exp"))
 
@@ -142,7 +142,8 @@ par(op)
 
 
 # check smoothing
-ks <- kriging_smooth_gaussian(mean_pm25~ 1, env)
+ks <- kriging_smooth_exponential(mean_pm25~ 1, env)
+
 y <- env$mean_pm25
 op <- par(mfrow = c(1, 2))
 plot(ks$smooth, y); abline(0, 1, col = "red")
@@ -151,26 +152,21 @@ points(y, pch = 19, col = "gray")
 abline(h = ks$prior_mean)
 par(op)
 
-env$smooth <- ks$smooth
-breaks <- seq(4.5, 8, by = .5)
-tmap_mode("plot")
-tmap_arrange(
-  tm_shape(env) +
-    tm_bubbles(col = "response", palette = "-RdYlBu", size = .3, breaks = breaks),
-  tm_shape(env) +
-    tm_bubbles(col = "smooth", palette = "-RdYlBu", size = .3, breaks = breaks)
-)
+# env$smooth <- ks$smooth
+# breaks <- seq(4.5, 8, by = .5)
+# tmap_mode("plot")
+# tmap_arrange(
+#   tm_shape(env) +
+#     tm_bubbles(col = "response", palette = "-RdYlBu", size = .3, breaks = breaks),
+#   tm_shape(env) +
+#     tm_bubbles(col = "smooth", palette = "-RdYlBu", size = .3, breaks = breaks)
+# )
 ```
 
 
 
 #Kriging Smooth Gaussian (outside of function)
 ```{r}
-
-gaussian_variogram <- function (n, ps, r)
-  function (h) n + ps * (1 - exp(-(h / r) ^ 2))
-
-
 formula <- mean_pm25 ~ 1
 data <- env
 
