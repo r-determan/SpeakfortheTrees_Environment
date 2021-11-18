@@ -17,6 +17,17 @@ library(sf)
 env <- st_read("env/env.shp")
 env<-st_centroid(env)
 env <- env[!is.na(env$mean_pm25),]
+
+
+
+
+dem <- st_read("Demographics_Smoothed/Demographics_Smoothed/DemographicsSmoothed.shp")
+
+#next steps 
+#join selected environment columns to demographics
+#compute smoothed pm2.5 and temperature
+
+
 ```
 
 ```{r}
