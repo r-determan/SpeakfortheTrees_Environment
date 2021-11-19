@@ -12,6 +12,8 @@ library(gstat) # variogram estimation
 library(tmap)
 library(geosphere)
 library(sf)
+library(magrittr)
+library(dplyr)
 
 
 env <- st_read("env/env.shp")
@@ -25,6 +27,10 @@ dem <- st_read("Demographics_Smoothed/Demographics_Smoothed/DemographicsSmoothed
 
 #next steps 
 #join selected environment columns to demographics
+#https://stackoverflow.com/questions/49032217/inner-joining-two-sf-objects-by-non-sf-column
+
+jn <- env %>%  as.data.frame() %>%  select(GEOID20, mean_temp, mean_pm25) %>%  inner_join(as.data.frame(dem)) %>% st_sf(sf_column_name = 'geometry')
+
 #compute smoothed pm2.5 and temperature
 
 
