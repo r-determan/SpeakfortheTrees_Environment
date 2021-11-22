@@ -5,6 +5,7 @@ date: "`r Sys.Date()`"
 output:
   pdf_document: default
   html_document: default
+  latex_engine: xelatex
 ---
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
@@ -12,6 +13,7 @@ knitr::opts_chunk$set(comment = NA, echo = FALSE, message = FALSE,
                       warning = FALSE,out.width="0.9\\linewidth",
                       dev="png",fig.align  = 'center')
 pacman::p_load("ggplot2","knitr","arm","data.table","foreign","car","faraway","nnet","reshape2","VGAM","sp","gstat", "tmap","sf","tidyverse","magrittr","rgdal", "dplyr","geosphere")
+Sys.setenv(LANGUAGE = "en")
 ```
 
 ## Data source:
@@ -78,12 +80,17 @@ knitr::include_graphics("Figure4_blockPM25.png")
 
 \newpage
 ### Bubble Plots with centroid data
-```{r echo=FALSE, fig.height=5, fig.width= 6,fig.cap="Bubble Plots for temp/PM2.5"}
+```{r echo=FALSE,results='asis',  warning=FALSE, fig.height=5, fig.width= 6,fig.cap="$Bubble Plots for mean_temp/mean_PM2.5$"}
 env_centroid <-st_centroid(env)
-tm_shape(env_centroid) +
+p1<-tm_shape(env_centroid) +
   tm_bubbles(col = "mean_temp", palette = "-RdYlBu", size = .3, alpha = .75)
-tm_shape(env_centroid) +
+p2<-tm_shape(env_centroid) +
   tm_bubbles(col = "mean_pm25", palette = "-RdYlBu", size = .3, alpha = .75)
+library(grid)
+grid.newpage()
+pushViewport(viewport(layout=grid.layout(1,2)))
+print(p1, vp=viewport(layout.pos.col = 1))
+print(p2, vp=viewport(layout.pos.col = 2))
 ```
 
 
@@ -245,7 +252,7 @@ abline(v = v_fit$range[2], col = "gray")
 plot(h, sum(v_fit$psill) - v_f(h), type = "l",
      xlab = "distance", ylab = "covariogram",
      ylim = c(0, sum(v_fit$psill)),
-     main = "Using Spherical Variogram")
+     main = "Using Spherical variogram")
 points(0, sum(v_fit$psill), pch = 19)
 abline(v = v_fit$range[2], col = "gray")
 par(op)
