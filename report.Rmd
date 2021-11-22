@@ -1,7 +1,7 @@
 ---
 title: "Speak for Tree - Environment"
 author: "Environment Group"
-date: "11/15/2021"
+date: "`r Sys.Date()`"
 output:
   pdf_document: default
   html_document: default
@@ -24,7 +24,7 @@ PM2.5:
 
 Temperature:
 
-Cencus Tracks(2020):
+Census Tracks(2020):
 
 ## Exploratory Data Analysis
 
@@ -54,28 +54,32 @@ dem <- st_read("Demographics_Smoothed/Demographics_Smoothed/DemographicsSmoothed
 #join selected environment columns to demographics
 #https://stackoverflow.com/questions/49032217/inner-joining-two-sf-objects-by-non-sf-column
 
-# jn <- env %>%  as.data.frame() %>%  select(GEOID20, mean_temp, mean_pm25)  %>%  inner_join(as.data.frame(dem)) %>% st_sf(sf_column_name = 'geometry')
+jn <- env %>%  as.data.frame() %>%  select(GEOID20, mean_temp, mean_pm25)  %>%  inner_join(as.data.frame(dem)) %>% st_sf(sf_column_name = 'geometry')
 
 #compute smoothed pm2.5 and temperature
 
 
 ```
 
-### Plot the mean temp for each census tract
-```{r}
-env <- st_read("env_blockgroups/env_blockgroups.shp")
-tmap_mode("view")
- tm_shape(env)+
-    tm_polygons("mean_temp") + 
-    tm_borders(col="#000000", lwd=0.2)
+### Plot the mean temp and PM2.5 situation for each census tract
+```{r, echo=FALSE, out.width = '100%'}
+knitr::include_graphics("Figure3_blockTemp.png")
+knitr::include_graphics("Figure4_blockPM25.png")
 ```
 
-### Plot the mean PM2.5 for each census tract
+```{r}
+# env2 <- st_read("env_blockgroups/env_blockgroups.shp")
+# tmap_mode("view")
+#  tm_shape(env2)+
+#     tm_polygons("mean_temp") + 
+#     tm_borders(col="#000000", lwd=0.2)
+```
+
 ```{r echo=FALSE, fig.height=5, fig.width= 6,fig.cap="The Distribution of mean_PM2.5 in Boston in 2018"}
-tmap_mode("view")
- tm_shape(env)+
-    tm_polygons("mean_pm25") + 
-    tm_borders(col="#000000", lwd=0.2)
+# tmap_mode("view")
+#  tm_shape(env2)+
+#     tm_polygons("mean_pm25") + 
+#     tm_borders(col="#000000", lwd=0.2)
 ```
 
 \newpage
@@ -189,13 +193,13 @@ kriging_smooth_exponential <- function (formula, data, ...) {
 
 # PM2.5: check variogram and covariance 
 ```{r}
-v <- variogram(mean_pm25 ~ 1, jn)
+v <- variogram(mean_pm25 ~ 1, env)
 v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
 v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
 
 # check variogram and covariance
 op <- par(mfrow = c(1, 2))
-h <- seq(0, 1600, length = 100)
+h <- seq(0, 26000, length = 100)
 plot(v$dist, v$gamma,  pch = 19, col = "gray",
      xlab = "distance", ylab = "semivariogram")
 lines(h, v_f(h))
@@ -209,25 +213,25 @@ par(op)
 ```
 
 ```{r}
-# check smoothing of mean_pm25
-ks <- kriging_smooth_spherical(mean_pm25~ 1, env)
-y <- env$mean_temp
-op <- par(mfrow = c(1, 2))
-plot(ks$smooth, y); abline(0, 1, col = "red")
-plot(ks$smooth, type = "l", ylab = "y")
-points(y, pch = 19, col = "gray")
-abline(h = ks$prior_mean)
-par(op)
-
-env$smooth <- ks$smooth
-breaks <- seq(4.5, 8, by = .5)
-tmap_mode("plot")
-tmap_arrange(
-  tm_shape(env) + # why not env_centroid
-    tm_bubbles(col = "response", palette = "-RdYlBu", size = .3, breaks = breaks),
-  tm_shape(env) +
-    tm_bubbles(col = "smooth", palette = "-RdYlBu", size = .3, breaks = breaks)
-)
+# # check smoothing of mean_pm25
+# ks <- kriging_smooth_spherical(mean_pm25~ 1, env)
+# y <- env$mean_temp
+# op <- par(mfrow = c(1, 2))
+# plot(ks$smooth, y); abline(0, 1, col = "red")
+# plot(ks$smooth, type = "l", ylab = "y")
+# points(y, pch = 19, col = "gray")
+# abline(h = ks$prior_mean)
+# par(op)
+# 
+# env$smooth <- ks$smooth
+# breaks <- seq(4.5, 8, by = .5)
+# tmap_mode("plot")
+# tmap_arrange(
+#   tm_shape(env) + # why not env_centroid
+#     tm_bubbles(col = "response", palette = "-RdYlBu", size = .3, breaks = breaks),
+#   tm_shape(env) +
+#     tm_bubbles(col = "smooth", palette = "-RdYlBu", size = .3, breaks = breaks)
+# )
 ```
 
 # Temperature: check variogram and covariance 
@@ -238,7 +242,7 @@ v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
 
 # check variogram and covariance
 op <- par(mfrow = c(1, 2))
-h <- seq(0, 1600, length = 100)
+h <- seq(0, 26000, length = 100)
 plot(v$dist, v$gamma,  pch = 19, col = "gray",
      xlab = "distance", ylab = "semivariogram")
 lines(h, v_f(h))
@@ -252,31 +256,33 @@ par(op)
 ```
 
 ```{r}
-# check smoothing of mean_temp
-ks <- kriging_smooth_spherical(mean_temp~ 1, env)
-y <- env$mean_temp
-op <- par(mfrow = c(1, 2))
-plot(ks$smooth, y); abline(0, 1, col = "red")
-plot(ks$smooth, type = "l", ylab = "y")
-points(y, pch = 19, col = "gray")
-abline(h = ks$prior_mean)
-par(op)
-
-env$smooth <- ks$smooth
-breaks <- seq(4.5, 8, by = .5)
-tmap_mode("plot")
-tmap_arrange(
-  tm_shape(env) +
-    tm_bubbles(col = "response", palette = "-RdYlBu", size = .3, breaks = breaks),
-  tm_shape(env) +
-    tm_bubbles(col = "smooth", palette = "-RdYlBu", size = .3, breaks = breaks)
-)
+# # check smoothing of mean_temp
+# ks <- kriging_smooth_spherical(mean_temp~ 1, env)
+# y <- env$mean_temp
+# op <- par(mfrow = c(1, 2))
+# plot(ks$smooth, y); abline(0, 1, col = "red")
+# plot(ks$smooth, type = "l", ylab = "y")
+# points(y, pch = 19, col = "gray")
+# abline(h = ks$prior_mean)
+# par(op)
+# 
+# env$smooth <- ks$smooth
+# breaks <- seq(4.5, 8, by = .5)
+# tmap_mode("plot")
+# tmap_arrange(
+#   tm_shape(env) +
+#     tm_bubbles(col = "response", palette = "-RdYlBu", size = .3, breaks = breaks),
+#   tm_shape(env) +
+#     tm_bubbles(col = "smooth", palette = "-RdYlBu", size = .3, breaks = breaks)
+# )
 ```
 
 
 ## Citation
 https://stackoverflow.com/questions/49032217/inner-joining-two-sf-objects-by-non-sf-column
+
 https://www.youtube.com/watch?v=J-IB4_QL7Oc
+
 http://www.goldensoftware.com/variogramTutorial.pdf
 
 
