@@ -14,11 +14,7 @@ knitr::opts_chunk$set(comment = NA, echo = FALSE, message = FALSE,
 pacman::p_load("ggplot2","knitr","arm","data.table","foreign","car","faraway","nnet","reshape2","VGAM","sp","gstat", "tmap","sf","tidyverse","magrittr","rgdal", "dplyr","geosphere")
 ```
 
-
-## Background
-
-
-### Data source:
+## Data source:
 
 PM2.5:
 
@@ -38,7 +34,7 @@ knitr::include_graphics("Figure1_QGIS_PM25.png")
 ```{r, echo=FALSE, fig.cap="The Temperature Situation in Boston", out.width = '100%'}
 knitr::include_graphics("Figure2_QGIS_Temp.png")
 ```
-
+\newpage
 ### Using R
 
 We combine the PM2.5 and temperature data to the Census2020_Tracts data, which allow us to do more exploration in R, and use krigging to avoid spacial confounding of our data.
@@ -57,8 +53,6 @@ dem <- st_read("Demographics_Smoothed/Demographics_Smoothed/DemographicsSmoothed
 jn <- env %>%  as.data.frame() %>%  select(GEOID20, mean_temp, mean_pm25)  %>%  inner_join(as.data.frame(dem)) %>% st_sf(sf_column_name = 'geometry')
 
 #compute smoothed pm2.5 and temperature
-
-
 ```
 
 ### Plot the mean temp and PM2.5 situation for each census tract
@@ -83,7 +77,7 @@ knitr::include_graphics("Figure4_blockPM25.png")
 ```
 
 \newpage
-### Bubble plotS
+### Bubble Plots with centroid data
 ```{r echo=FALSE, fig.height=5, fig.width= 6,fig.cap="Bubble Plots for temp/PM2.5"}
 env_centroid <-st_centroid(env)
 tm_shape(env_centroid) +
@@ -206,7 +200,8 @@ lines(h, v_f(h))
 abline(v = v_fit$range[2], col = "gray")
 plot(h, sum(v_fit$psill) - v_f(h), type = "l",
      xlab = "distance", ylab = "covariogram",
-     ylim = c(0, sum(v_fit$psill)))
+     ylim = c(0, sum(v_fit$psill)),
+     main = "Using Spherical Variogram")
 points(0, sum(v_fit$psill), pch = 19)
 abline(v = v_fit$range[2], col = "gray")
 par(op)
@@ -249,7 +244,8 @@ lines(h, v_f(h))
 abline(v = v_fit$range[2], col = "gray")
 plot(h, sum(v_fit$psill) - v_f(h), type = "l",
      xlab = "distance", ylab = "covariogram",
-     ylim = c(0, sum(v_fit$psill)))
+     ylim = c(0, sum(v_fit$psill)),
+     main = "Using Spherical Variogram")
 points(0, sum(v_fit$psill), pch = 19)
 abline(v = v_fit$range[2], col = "gray")
 par(op)
