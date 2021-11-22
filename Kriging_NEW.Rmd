@@ -32,6 +32,7 @@ dem <- st_read("Demographics_Smoothed/Demographics_Smoothed/DemographicsSmoothed
 jn <- env %>%  as.data.frame() %>%  select(GEOID20, mean_temp, mean_pm25) %>%  inner_join(as.data.frame(dem)) %>% st_sf(sf_column_name = 'geometry')
 
 #compute smoothed pm2.5 and temperature
+jn %<>% st_sf(sf_column_name = 'geometry')
 
 
 ```
@@ -137,9 +138,12 @@ kriging_smooth_exponential <- function (formula, data, ...) {
 ```
 
 ```{r}
+env <- jn
 env <- env[!is.na(env$mean_pm25),]
 
-v <- variogram(mean_pm25 ~ 1, env)
+formula <- mean_pm25 ~ 1 + Mdn_Inc_s + Mdn_Inc_r + MnrPrc_s + MnrPrc_r
+
+v <- variogram(formula, env)
 v_fit <- fit.variogram(v, vgm("Exp")) #'vgm':generate a variogram model or add to an existing model.
 v_f <- exponential_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
 
@@ -159,7 +163,7 @@ par(op)
 
 
 # check smoothing
-ks <- kriging_smooth_exponential(mean_pm25~ 1, env)
+ks <- kriging_smooth_exponential(formula, env)
 
 y <- env$mean_pm25
 op <- par(mfrow = c(1, 2))
