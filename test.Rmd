@@ -204,7 +204,7 @@ kriging_smooth_spherical <- function (formula, data, ...) {
 ```
 
 ```{r}
-# check smoothing
+# check smoothing: still not work
 ks <- kriging_smooth_spherical(formula, dt)
 
 y <- env$mean_pm25
@@ -241,6 +241,32 @@ plot(v$dist, v$gamma,  pch = 19, col = "gray",
      xlab = "distance", ylab = "semivariogram", main = "Tree Canopy")
 lines(h, v_f(h))
 abline(v = v_fit$range[2], col = "gray")
+
+# check smoothing: still not work
+formula <- qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r + MnrPrc_s + MnrPrc_r + mean_pm25
+dt <- jn
+ks <- kriging_smooth_spherical(formula, dt)
+
+y <- jn$mean_pm25
+op <- par(mfrow = c(1, 2))
+plot(ks$smooth, y); abline(0, 1, col = "red") # this smooth is about the combination of predictors above? 
+plot(ks$smooth, type = "l", ylab = "y")
+points(y, pch = 19, col = "gray") # what's wrong
+abline(h = ks$prior_coef) # ks's prior_coef's mean_pm25
+par(op)
+
+# #Add smoothing and residuals to datasets
+# jn$mean_pm25_smooth <- ks$smooth
+# jn$mean_pm25_resid <- jn$mean_pm25 - jn$mean_pm25_smooth 
+# 
+# 
+# #Plots that show smoothing
+# ggplot(jn) + geom_sf(aes(fill = mean_pm25)) + 
+#   scale_fill_distiller(palette="Reds", trans = "reverse")
+# 
+# ggplot(jn) + geom_sf(aes(fill = mean_pm25_smooth)) + 
+#   scale_fill_distiller(palette="Reds", trans = "reverse")
+
 ```
 
 
