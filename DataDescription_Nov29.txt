@@ -1,0 +1,38 @@
+Updated: 11/29/2021
+
+This Shapefile contains smoothed demographic and environmental data based on the 2020 Census Tracts.
+Note: Some census tracts have zero to a small number of residents. Due these outliers causing issues, 12 census tracts were removed.
+
+GEOID20 -> GEOID for 2020 census tract
+Tre_Cnp -> Estimated tree canopy within a tract (proportion of cover)
+TotalPp -> Total Population within tract
+MinrPrc -> Percent of population that is a minority race
+PpDnsty -> Population Density (Land area only)
+MedGrTx -> Median Gross Parcel Tax 
+Mdn_Inc -> Median Income
+
+MnrPrc_t -> Minority Percentage transformed on the logit scale
+MnrPrc_s -> Smoothed Minority Percentage
+MnrPrc_r -> Residuals for smoothed Minority Percentage (MnrPrc_t - MnrPrc_s)
+
+MdGrTx_t -> Median Gross Parcel Tax transformed on log( +1) scale
+MdGrTx_s -> Smoothed Median Gross Parcel Tax 
+MdGrTx_r -> Residuals for smoothed Median Gross Parcel Tax (MdGrTx_t - MdGrTx_s)
+
+Mdn_Inc_t -> Median Income transformed on log( +1) scale
+Mdn_Inc_s -> Smoothed Median Income
+Mdn_Inc_r -> Residuals for smoothed Median Income (Mdn_Inc_t - Mdn_Inc_s)
+Note: Variogram for Median Income was not fully stationary for farther distances, so smoothed results will have some error
+
+
+mean_pm25 -> Mean value of pm 2.5 measured in ug/m^3
+mean_pm25_smooth -> Smoothed mean pm 2.5
+mean_pm25_resid -> Residuals of mean pm 2.5 modeled
+https://sites.wustl.edu/acag/datasets/surface-pm2-5/#V4.NA.03
+
+mean_temp -> Mean estimated surface temperature
+mean_temp_smooth -> Smoothed surface temperature
+mean_temp_resid -> Residuals of surface temperature
+Note: Variogram for surface temperature was not fully stationary for farther distances, so smoothed results will have some error
+https://doi.org/10.5066/P960F8OC 
+LC08_CU_030006_20210812_20210822_02 and LC08_CU_030005_20210812_20210822_02
