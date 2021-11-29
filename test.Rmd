@@ -21,6 +21,7 @@ library(arm)
 ```{r}
 env <- st_read("env.shp")
 env <- env[!is.na(env$mean_pm25),] #Remove rows with null columns
+env <- env[!is.na(env$mean_temp),] 
 env <- st_centroid(env) # Calculate centroids
 # epsg_wgs84 <- 4326
 # env <- env %>% st_transform(epsg_wgs84)
@@ -32,8 +33,8 @@ dem <- st_centroid(dem)
 #https://stackoverflow.com/questions/49032217/inner-joining-two-sf-objects-by-non-sf-column
 
 #join selected environment columns to demographics
-env_dub <- as.data.frame(env)
-env_sub <- env_dub[,c('GEOID20','mean_temp','mean_pm25')]
+env_sub <- as.data.frame(env)
+env_sub <- env_sub[,c('GEOID20','mean_temp','mean_pm25')]
 jn <- env_sub  %>% inner_join(as.data.frame(dem)) %>% st_sf(sf_column_name = 'geometry') 
 jn %<>% st_sf(sf_column_name = 'geometry')
 
@@ -57,65 +58,14 @@ gaussian_variogram <- function (n, ps, r)
 exponential_variogram <- function (n, ps, r)
   function (h) n + ps * (1 - exp(-(h / r)))
 
-
-# v <- variogram(qlogis(MinorPerc) ~ 1, centroids)
-
-#Calculate variograms 
-formula <- mean_pm25 ~ 1 # + Mdn_Inc_s + Mdn_Inc_r + MnrPrc_s + MnrPrc_r
-dt <- env
-v <- variogram(formula, env)
-v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
-v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2]) #Create spherical variograms
-
-#Plot the variograms
-op <- par(mfrow = c(1, 2))
-h <- seq(0, 26000, length = 1000)
-
-plot(v$dist, v$gamma,  pch = 19, col = "gray",
-     xlab = "distance", ylab = "semivariogram") # main = "Minority Percentage"
-lines(h, v_f(h))
-abline(v = v_fit$range[2], col = "gray")
-plot(h, sum(v_fit$psill) - v_f(h), type = "l",
-     xlab = "distance", ylab = "covariogram",
-     ylim = c(0, sum(v_fit$psill)))
-points(0, sum(v_fit$psill), pch = 19)
-abline(v = v_fit$range[2], col = "gray")
-par(op)
-
-
 # solves `A * x = v` where `C = chol(A)` is the Cholesky factor:
 chol_solve <- function (C, v) backsolve(C, backsolve(C, v, transpose = TRUE)) # the solution of triangular system.The result will be a vector if 'x' is a vector and a matrix if 'x' is a matrix.
 
-# old kriging function
-# kriging_smooth_spherical <- function (formula, data, ...) {
-#   # formula <- mean_pm25 ~ 1
-#   # data <- env
-#   v <- variogram(formula, data)
-#   v_fit <- fit.variogram(v, vgm("Sph"))
-#   v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
-#   #Sigma <- v_f(as.matrix(dist(coordinates(data)))) # previous code
-#   Sigma <- v_f(as.matrix(dist(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)))) # semivariogram
-#   Sigma <- sum(v_fit$psill) - Sigma # prior variance
-#   tau2 <- v_fit$psill[1] # residual variance
-#   C <- chol(tau2 * diag(nrow(data)) + Sigma)
-#   y <- model.frame(formula, data)[, 1] # response
-#   x <- model.matrix(formula, data)
-#   # generalized least squares:
-#   beta <- coef(lm.fit(backsolve(C, x, transpose = TRUE),
-#                       backsolve(C, y, transpose = TRUE))) # prior mean
-# 
-#   Sigma_inv <- chol2inv(chol(Sigma))
-#   C <- chol(Sigma_inv + diag(nrow(data)) / tau2)
-#   # posterior mean (smoother):
-#   mu <- drop(chol_solve(C, y / tau2 + Sigma_inv %*% x %*% beta))
-#   list(smooth = mu, prior_mean = beta)
-# }
+
 
 #New Kriging Function
 epsilon <- 1e-3
 kriging_smooth_spherical <- function (formula, data, ...) {
-#   formula <- mean_pm25 ~ 1 +  log(TotalPp)+Mdn_Inc_s  + Mdn_Inc_r 
-#   data <- jn
   v <- variogram(formula, data)
   v_fit <- fit.variogram(v, vgm("Sph",...))
   v_fit$psill[1] <- max(v_fit$psill[1], epsilon)
@@ -204,6 +154,35 @@ kriging_smooth_spherical <- function (formula, data, ...) {
 #   list(smooth = mu, prior_mean = beta)}
 
 ```
+
+
+```{r}
+# old kriging function
+# kriging_smooth_spherical <- function (formula, data, ...) {
+#   # formula <- mean_pm25 ~ 1
+#   # data <- env
+#   v <- variogram(formula, data)
+#   v_fit <- fit.variogram(v, vgm("Sph"))
+#   v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
+#   #Sigma <- v_f(as.matrix(dist(coordinates(data)))) # previous code
+#   Sigma <- v_f(as.matrix(dist(matrix(unlist(data$geometry), ncol = 2, byrow = TRUE)))) # semivariogram
+#   Sigma <- sum(v_fit$psill) - Sigma # prior variance
+#   tau2 <- v_fit$psill[1] # residual variance
+#   C <- chol(tau2 * diag(nrow(data)) + Sigma)
+#   y <- model.frame(formula, data)[, 1] # response
+#   x <- model.matrix(formula, data)
+#   # generalized least squares:
+#   beta <- coef(lm.fit(backsolve(C, x, transpose = TRUE),
+#                       backsolve(C, y, transpose = TRUE))) # prior mean
+# 
+#   Sigma_inv <- chol2inv(chol(Sigma))
+#   C <- chol(Sigma_inv + diag(nrow(data)) / tau2)
+#   # posterior mean (smoother):
+#   mu <- drop(chol_solve(C, y / tau2 + Sigma_inv %*% x %*% beta))
+#   list(smooth = mu, prior_mean = beta)
+# }
+```
+
 names(jn)
  [1] "GEOID20"   "mean_temp" "mean_pm25" "OBJECTI"   "STATEFP"   "COUNTYF"   "TRACTCE"   "NAME20" 
  [9] "NAMELSA"   "MTFCC20"   "FUNCSTA"   "ALAND20"   "AWATER2"   "INTPTLA"   "INTPTLO"   "Sh_STA_"
@@ -212,12 +191,47 @@ names(jn)
 [33] "geometry" 
 
 ```{r}
-# check smoothing: still not work
+#Calculate variograms for mean_pm25
+v <- variogram(mean_pm25 ~ 1 , jn)
+v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
+v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2]) #Create spherical variograms
+#Plot the variograms
+op <- par(mfrow = c(1, 2))
+h <- seq(0, 26000, length = 1000)
 
-formula <- mean_pm25 ~ 1 
-dt <- jn
-ks <- kriging_smooth_spherical(formula, dt)
+plot(v$dist, v$gamma,  pch = 19, col = "gray",
+     xlab = "distance", ylab = "semivariogram") # main = "Minority Percentage"
+lines(h, v_f(h))
+abline(v = v_fit$range[2], col = "gray")
+plot(h, sum(v_fit$psill) - v_f(h), type = "l",
+     xlab = "distance", ylab = "covariogram",
+     ylim = c(0, sum(v_fit$psill)))
+points(0, sum(v_fit$psill), pch = 19)
+abline(v = v_fit$range[2], col = "gray")
+par(op)
 
+#Calculate variograms for mean_temp
+v <- variogram(mean_temp ~ 1, jn)
+v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
+v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2]) #Create spherical variograms
+#Plot the variograms
+op <- par(mfrow = c(1, 2))
+h <- seq(0, 26000, length = 1000)
+
+plot(v$dist, v$gamma,  pch = 19, col = "gray",
+     xlab = "distance", ylab = "semivariogram") # main = "Minority Percentage"
+lines(h, v_f(h))
+abline(v = v_fit$range[2], col = "gray")
+plot(h, sum(v_fit$psill) - v_f(h), type = "l",
+     xlab = "distance", ylab = "covariogram",
+     ylim = c(0, sum(v_fit$psill)))
+points(0, sum(v_fit$psill), pch = 19)
+abline(v = v_fit$range[2], col = "gray")
+par(op)
+
+# check smoothing:
+
+ks <- kriging_smooth_spherical(mean_pm25 ~ 1 , jn)
 y <- jn$mean_pm25
 op <- par(mfrow = c(1, 2))
 plot(ks$smooth, y); abline(0, 1, col = "red")
@@ -226,26 +240,41 @@ points(y, pch = 19, col = "gray")
 abline(h = ks$prior_mean)
 par(op)
 
+ks2 <- kriging_smooth_spherical(mean_temp ~ 1 , jn)
+y2 <- jn$mean_temp
+op <- par(mfrow = c(1, 2))
+plot(ks2$smooth, y2); abline(0, 1, col = "red")
+plot(ks2$smooth, type = "l", ylab = "y")
+points(y2, pch = 19, col = "gray")
+abline(h = ks2$prior_mean)
+par(op)
 #Add smoothing and residuals to datasets
 jn$mean_pm25_smooth <- ks$smooth
 jn$mean_pm25_resid <- jn$mean_pm25 - jn$mean_pm25_smooth 
+jn$mean_temp_smooth <- ks2$smooth
+jn$mean_temp_resid <- jn$mean_temp - jn$mean_temp_smooth 
 
-#Plots that show smoothing
-# ggplot(jn) + geom_sf(aes(color = mean_pm25)) + 
-#   scale_fill_distiller(palette="Reds", trans = "reverse")
 
-g1 <- ggplot(jn) + geom_sf(aes(fill =mean_pm25, color = mean_pm25)) + 
+# plot
+g1 <- ggplot(jn) + geom_sf(aes(fill = mean_pm25, color = mean_pm25)) + 
   scale_fill_viridis_c(direction = -1)+
   scale_color_viridis_c(direction = -1)
 
-g2 <- ggplot(jn) + geom_sf(aes(fill =mean_pm25_smooth, color = mean_pm25_smooth)) + 
+g2 <- ggplot(jn) + geom_sf(aes(fill = mean_pm25_smooth, color = mean_pm25_smooth)) + 
   scale_fill_viridis_c(direction = -1)+
   scale_color_viridis_c(direction = -1)
-install.packages("ggpubr")
-library(ggpubr)
-#grid.arrange(g1,g2, ncol =2)
+library(ggpubr) #install.packages("ggpubr")
 ggarrange(g1,g2,common.legend = TRUE)
-  #scale_fill_gradientn(colors=terrain.colors(20), trans = "reverse")
+
+g3 <- ggplot(jn) + geom_sf(aes(fill = mean_temp, color = mean_temp)) + 
+  scale_fill_viridis_c(direction = -1)+
+  scale_color_viridis_c(direction = -1)
+  
+g4 <- ggplot(jn) + geom_sf(aes(fill = mean_temp_smooth, color = mean_temp_smooth)) + 
+  scale_fill_viridis_c(direction = -1)+
+  scale_color_viridis_c(direction = -1)
+ggarrange(g3,g4,common.legend = TRUE)
+
 ```
 
 ```{r}
