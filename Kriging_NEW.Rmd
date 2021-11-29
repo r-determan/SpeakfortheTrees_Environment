@@ -112,8 +112,6 @@ kriging_smooth_gaussian <- function (formula, data, ...) {
 
 
 kriging_smooth_exponential <- function (formula, data, ...) {
-  formula <- mean_pm25 ~ 1 + Mdn_Inc_s + Mdn_Inc_r + MnrPrc_s + MnrPrc_r
-  data <- env
   v <- variogram(formula, data)
   v_fit <- fit.variogram(v, vgm("Exp"))
 
@@ -136,6 +134,9 @@ kriging_smooth_exponential <- function (formula, data, ...) {
   list(smooth = mu, prior_mean = beta)}
 
 ```
+
+
+- fit models
 
 ```{r}
 env <- jn
@@ -188,7 +189,7 @@ par(op)
 
 #Kriging Smooth Gaussian (outside of function)
 ```{r}
-formula <- mean_pm25 ~ 1 + Mdn_Inc_s + Mdn_Inc_r# + logit-tree canopy + log(pop)
+formula <- mean_pm25 ~ 1 + Mdn_Inc_s + Mdn_Inc_r  # + logit-tree canopy + log(pop)
 data <- env
 
 v <- variogram(formula, data)
