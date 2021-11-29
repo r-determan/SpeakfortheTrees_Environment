@@ -112,11 +112,13 @@ chol_solve <- function (C, v) backsolve(C, backsolve(C, v, transpose = TRUE)) # 
 # }
 
 #New Kriging Function
+epsilon <- 1e-3
 kriging_smooth_spherical <- function (formula, data, ...) {
-  # formula <- mean_pm25 ~ 1
-  # data <- env
+#   formula <- mean_pm25 ~ 1 +  log(TotalPp)+Mdn_Inc_s  + Mdn_Inc_r 
+#   data <- jn
   v <- variogram(formula, data)
-  v_fit <- fit.variogram(v, vgm("Sph", ...))
+  v_fit <- fit.variogram(v, vgm("Sph",...))
+  v_fit$psill[1] <- max(v_fit$psill[1], epsilon)
   v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
   
   Sigma <- v_f(as.matrix(dist(st_coordinates(data)))) # semivariogram
@@ -202,12 +204,21 @@ kriging_smooth_spherical <- function (formula, data, ...) {
 #   list(smooth = mu, prior_mean = beta)}
 
 ```
+names(jn)
+ [1] "GEOID20"   "mean_temp" "mean_pm25" "OBJECTI"   "STATEFP"   "COUNTYF"   "TRACTCE"   "NAME20" 
+ [9] "NAMELSA"   "MTFCC20"   "FUNCSTA"   "ALAND20"   "AWATER2"   "INTPTLA"   "INTPTLO"   "Sh_STA_"
+[17] "Sh_STL_"   "Tre_Cnp"   "TotalPp"   "MinrPrc"   "PpDnsty"   "MedGrTx"   "Mdn_Inc"   "MnrPrc_t" 
+[25] "MnrPrc_s"  "MnrPrc_r"  "MdGrTx_t"  "MdGrTx_s"  "MdGrTx_r"  "Mdn_Inc_t" "Mdn_Inc_s" "Mdn_Inc_r"
+[33] "geometry" 
 
 ```{r}
 # check smoothing: still not work
+
+formula <- mean_pm25 ~ 1 
+dt <- jn
 ks <- kriging_smooth_spherical(formula, dt)
 
-y <- env$mean_pm25
+y <- jn$mean_pm25
 op <- par(mfrow = c(1, 2))
 plot(ks$smooth, y); abline(0, 1, col = "red")
 plot(ks$smooth, type = "l", ylab = "y")
@@ -220,16 +231,29 @@ jn$mean_pm25_smooth <- ks$smooth
 jn$mean_pm25_resid <- jn$mean_pm25 - jn$mean_pm25_smooth 
 
 #Plots that show smoothing
-ggplot(jn) + geom_sf(aes(fill = mean_pm25)) + 
-  scale_fill_distiller(palette="Reds", trans = "reverse")
+# ggplot(jn) + geom_sf(aes(color = mean_pm25)) + 
+#   scale_fill_distiller(palette="Reds", trans = "reverse")
 
-ggplot(jn) + geom_sf(aes(fill = mean_pm25_smooth)) + 
-  scale_fill_distiller(palette="Reds", trans = "reverse")
+g1 <- ggplot(jn) + geom_sf(aes(fill =mean_pm25, color = mean_pm25)) + 
+  scale_fill_viridis_c(direction = -1)+
+  scale_color_viridis_c(direction = -1)
+
+g2 <- ggplot(jn) + geom_sf(aes(fill =mean_pm25_smooth, color = mean_pm25_smooth)) + 
+  scale_fill_viridis_c(direction = -1)+
+  scale_color_viridis_c(direction = -1)
+install.packages("ggpubr")
+library(ggpubr)
+#grid.arrange(g1,g2, ncol =2)
+ggarrange(g1,g2,common.legend = TRUE)
+  #scale_fill_gradientn(colors=terrain.colors(20), trans = "reverse")
 ```
 
 ```{r}
 #Check if Tree Canopy can be predicted from ...
-v <- variogram(qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r + MnrPrc_s + MnrPrc_r + mean_pm25, jn) # do we need add residual? do we need add "1+", and what I heard is log(TotalPp) or log(PpDnsty)? 
+formula <- qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + mean_pm25_smooth + mean_pm25_resid
+dt <- jn
+
+v <- variogram(formula, dt) # do we need add residual? do we need add "1+", and what I heard is log(TotalPp) or log(PpDnsty)? 
 
 v_fit <- fit.variogram(v, vgm("Sph"))
 v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
@@ -242,30 +266,23 @@ plot(v$dist, v$gamma,  pch = 19, col = "gray",
 lines(h, v_f(h))
 abline(v = v_fit$range[2], col = "gray")
 
-# check smoothing: still not work
-formula <- qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r + MnrPrc_s + MnrPrc_r + mean_pm25
-dt <- jn
+# check smoothing:
 ks <- kriging_smooth_spherical(formula, dt)
-
-y <- jn$mean_pm25
+y <- qlogis(jn$Tre_Cnp)
 op <- par(mfrow = c(1, 2))
-plot(ks$smooth, y); abline(0, 1, col = "red") # this smooth is about the combination of predictors above? 
+plot(ks$smooth, y); abline(0, 1, col = "red") 
 plot(ks$smooth, type = "l", ylab = "y")
-points(y, pch = 19, col = "gray") # what's wrong
-abline(h = ks$prior_coef) # ks's prior_coef's mean_pm25
+points(y, pch = 19, col = "gray") 
+abline(h = ks$prior_coef) 
 par(op)
 
-# #Add smoothing and residuals to datasets
-# jn$mean_pm25_smooth <- ks$smooth
-# jn$mean_pm25_resid <- jn$mean_pm25 - jn$mean_pm25_smooth 
+
+
+ send_shape <- jn
 # 
-# 
-# #Plots that show smoothing
-# ggplot(jn) + geom_sf(aes(fill = mean_pm25)) + 
-#   scale_fill_distiller(palette="Reds", trans = "reverse")
-# 
-# ggplot(jn) + geom_sf(aes(fill = mean_pm25_smooth)) + 
-#   scale_fill_distiller(palette="Reds", trans = "reverse")
+ st_write(send_shape, "Tree_dem_env.shp")
+# # 
+check <- st_read("Tree_dem_env.shp", quiet = TRUE)
 
 ```
 
