@@ -30,7 +30,7 @@ mn_pm25_s -> Smoothed mean pm 2.5
 mn_pm25_r -> Residuals of mean pm 2.5 modeled
 https://sites.wustl.edu/acag/datasets/surface-pm2-5/#V4.NA.03
 
-mn_tmp -> Mean estimated surface temperature
+men_tmp -> Mean estimated surface temperature
 mn_tmp_smooth -> Smoothed surface temperature
 mn_tmp_resid -> Residuals of surface temperature
 Note: Variogram for surface temperature was not fully stationary for farther distances, so smoothed results will have some error
