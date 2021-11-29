@@ -25,14 +25,14 @@ Mdn_Inc_r -> Residuals for smoothed Median Income (Mdn_Inc_t - Mdn_Inc_s)
 Note: Variogram for Median Income was not fully stationary for farther distances, so smoothed results will have some error
 
 
-mean_pm25 -> Mean value of pm 2.5 measured in ug/m^3
-mean_pm25_smooth -> Smoothed mean pm 2.5
-mean_pm25_resid -> Residuals of mean pm 2.5 modeled
+mn_pm25 -> Mean value of pm 2.5 measured in ug/m^3
+mn_pm25_s -> Smoothed mean pm 2.5
+mn_pm25_r -> Residuals of mean pm 2.5 modeled
 https://sites.wustl.edu/acag/datasets/surface-pm2-5/#V4.NA.03
 
-mean_temp -> Mean estimated surface temperature
-mean_temp_smooth -> Smoothed surface temperature
-mean_temp_resid -> Residuals of surface temperature
+mn_tmp -> Mean estimated surface temperature
+mn_tmp_smooth -> Smoothed surface temperature
+mn_tmp_resid -> Residuals of surface temperature
 Note: Variogram for surface temperature was not fully stationary for farther distances, so smoothed results will have some error
 https://doi.org/10.5066/P960F8OC 
 LC08_CU_030006_20210812_20210822_02 and LC08_CU_030005_20210812_20210822_02
