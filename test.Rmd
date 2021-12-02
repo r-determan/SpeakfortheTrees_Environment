@@ -15,6 +15,7 @@ library(sf)
 library(tidyverse)
 library(magrittr)
 library(arm)
+library(scico)
 ```
 
 # combine the data
@@ -278,7 +279,7 @@ ggarrange(g3,g4,common.legend = TRUE)
 
 ```{r}
 #Check if Tree Canopy can be predicted from ...
-formula <- qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + mean_pm25_smooth + mean_pm25_resid +mean_temp_smooth + mean_temp_resid
+formula <- qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + mean_pm25_smooth + mean_pm25_resid +mean_temp_smooth + mean_temp_resid)
 dt <- jn
 
 v <- variogram(formula, dt) # do we need add residual? do we need add "1+", and what I heard is log(TotalPp) or log(PpDnsty)? 
@@ -306,10 +307,42 @@ par(op)
 
 rbind(ks$prior_coef, ks$prior_coef_se) #to see coef values
 
+<<<<<<< HEAD
+
+ send_shape <- jn
+# 
+ st_write(send_shape, "Tree_dem_env.shp")
+# # 
+check <- st_read("Tree_dem_env.shp", quiet = TRUE)
+t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")
+=======
 #  send_shape <- jn
 #  st_write(send_shape, "Tree_dem_env.shp")
 # check <- st_read("Tree_dem_env.shp", quiet = TRUE)
+>>>>>>> faa38f54486cc45573f5ce9884f808177228a4c6
 
 ```
+
+
+```{r}
+```
+```{r}
+#join selected environment columns to demographics
+data <- as.data.frame(check)
+data_sub <- data[,c('GEOID20','men_tmp','mn_tmp_s', "mn_pm25", "mn_pm25_s")]
+jn <- data_sub  %>% inner_join(as.data.frame(t)) %>% st_sf(sf_column_name = 'geometry') 
+jn %<>% st_sf(sf_column_name = 'geometry')
+
+#Standardize the coordinate system used
+epsg_wgs84 <- 4326
+jn <- jn %>% st_transform(epsg_wgs84)
+
+pacman::p_load(paletteer)
+temp <- ggplot(data = jn, aes(fill = men_tmp))+
+geom_sf()+paletteer::scale_fill_paletteer_c("viridis::plasma")
+
+temp
+```
+
 
 
