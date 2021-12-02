@@ -254,7 +254,6 @@ jn$mean_pm25_resid <- jn$mean_pm25 - jn$mean_pm25_smooth
 jn$mean_temp_smooth <- ks2$smooth
 jn$mean_temp_resid <- jn$mean_temp - jn$mean_temp_smooth 
 
-
 # plot
 g1 <- ggplot(jn) + geom_sf(aes(fill = mean_pm25, color = mean_pm25)) + 
   scale_fill_viridis_c(direction = -1)+
@@ -305,13 +304,11 @@ points(y, pch = 19, col = "gray")
 abline(h = ks$prior_coef) 
 par(op)
 
+rbind(ks$prior_coef, ks$prior_coef_se) #to see coef values
 
-
- send_shape <- jn
-# 
- st_write(send_shape, "Tree_dem_env.shp")
-# # 
-check <- st_read("Tree_dem_env.shp", quiet = TRUE)
+#  send_shape <- jn
+#  st_write(send_shape, "Tree_dem_env.shp")
+# check <- st_read("Tree_dem_env.shp", quiet = TRUE)
 
 ```
 
