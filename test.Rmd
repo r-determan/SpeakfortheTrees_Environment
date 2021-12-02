@@ -278,7 +278,7 @@ ggarrange(g3,g4,common.legend = TRUE)
 
 ```{r}
 #Check if Tree Canopy can be predicted from ...
-formula <- qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + mean_pm25_smooth + mean_pm25_resid +mean_temp_smooth + mean_temp_resid)
+formula <- qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + mean_pm25_smooth + mean_pm25_resid +mean_temp_smooth + mean_temp_resid
 dt <- jn
 
 v <- variogram(formula, dt) # do we need add residual? do we need add "1+", and what I heard is log(TotalPp) or log(PpDnsty)? 
