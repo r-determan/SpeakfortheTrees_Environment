@@ -194,7 +194,7 @@ names(jn)
 # mean_pm25
 ```{r}
 #Calculate variograms for mean_pm25
-v <- variogram(mean_pm25 ~ 1 , jn)
+v <- variogram(mean_pm25 ~ 1+ Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty)  , jn)
 v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
 v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2]) #Create spherical variograms
 #Plot the variograms
@@ -213,7 +213,7 @@ abline(v = v_fit$range[2], col = "gray")
 par(op)
 
 # check smoothing:
-ks <- kriging_smooth_spherical(mean_pm25 ~ 1 , jn)
+ks <- kriging_smooth_spherical(mean_pm25 ~ 1+ Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty)  , jn)
 y <- jn$mean_pm25
 op <- par(mfrow = c(1, 2))
 plot(ks$smooth, y); abline(0, 1, col = "red")
@@ -232,7 +232,7 @@ rbind(ks$prior_coef, ks$prior_coef_se) #to see coef values
 # mean_temp
 ```{r}
 #Calculate variograms for mean_temp
-v <- variogram(mean_temp ~ 1, jn)
+v <- variogram(mean_temp ~ 1 + Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty)  , jn)
 v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
 v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2]) #Create spherical variograms
 #Plot the variograms
@@ -251,7 +251,7 @@ abline(v = v_fit$range[2], col = "gray")
 par(op)
 
 # check smoothing
-ks2 <- kriging_smooth_spherical(mean_temp ~ 1 , jn)
+ks2 <- kriging_smooth_spherical(mean_temp ~ 1+ Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty)  , jn)
 y2 <- jn$mean_temp
 op <- par(mfrow = c(1, 2))
 plot(ks2$smooth, y2); abline(0, 1, col = "red")
@@ -260,7 +260,7 @@ points(y2, pch = 19, col = "gray")
 abline(h = ks2$prior_mean)
 par(op)
 
-rbind(ks$prior_coef, ks$prior_coef_se) #to see coef values
+rbind(ks2$prior_coef, ks2$prior_coef_se) #to see coef values
 
 ```
 
