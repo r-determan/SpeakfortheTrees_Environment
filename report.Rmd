@@ -52,7 +52,7 @@ dem <- st_read("Demographics_Smoothed/Demographics_Smoothed/DemographicsSmoothed
 #join selected environment columns to demographics
 #https://stackoverflow.com/questions/49032217/inner-joining-two-sf-objects-by-non-sf-column
 
-jn <- env %>%  as.data.frame() %>%  select(GEOID20, mean_temp, mean_pm25)  %>%  inner_join(as.data.frame(dem)) %>% st_sf(sf_column_name = 'geometry')
+jn <- env %>%  as.data.frame() %>%  dplyr::select(GEOID20, mean_temp, mean_pm25)  %>%  inner_join(as.data.frame(dem)) %>% st_sf(sf_column_name = 'geometry')
 
 #compute smoothed pm2.5 and temperature
 ```
@@ -95,7 +95,7 @@ print(p2, vp=viewport(layout.pos.col = 2))
 
 
 \newpage
-### Kriging for spacial mixed effects
+### Kriging for spatial mixed effects
 ```{r}
 # Luis slides
 # Helper functions
@@ -303,7 +303,6 @@ s_temp <- ggplot(data = jn, aes(fill = mn_tmp_s)) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 ggarrange(temp, s_temp, ncol=2, common.legend = TRUE)
 
-
 pm25 <- ggplot(data = jn, aes(fill = mn_pm25)) +
   geom_sf() +
   labs(title="PM2.5") +
@@ -316,7 +315,8 @@ s_pm25 <- ggplot(data = jn, aes(fill = mn_pm25_s)) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 ggarrange(pm25, s_pm25, ncol=2, common.legend = TRUE)
 
-
+ggsave("Figure3_blockTemp.png", s_temp)
+ggsave("Figure4_blockPM25.png", pm25 )
 ```
 
 
