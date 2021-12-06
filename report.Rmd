@@ -258,26 +258,65 @@ abline(v = v_fit$range[2], col = "gray")
 par(op)
 ```
 
+# Plot Smooth Data
 ```{r}
-# # check smoothing of mean_temp
-# ks <- kriging_smooth_spherical(mean_temp~ 1, env)
-# y <- env$mean_temp
-# op <- par(mfrow = c(1, 2))
-# plot(ks$smooth, y); abline(0, 1, col = "red")
-# plot(ks$smooth, type = "l", ylab = "y")
-# points(y, pch = 19, col = "gray")
-# abline(h = ks$prior_mean)
-# par(op)
-# 
-# env$smooth <- ks$smooth
-# breaks <- seq(4.5, 8, by = .5)
-# tmap_mode("plot")
-# tmap_arrange(
-#   tm_shape(env) +
-#     tm_bubbles(col = "response", palette = "-RdYlBu", size = .3, breaks = breaks),
-#   tm_shape(env) +
-#     tm_bubbles(col = "smooth", palette = "-RdYlBu", size = .3, breaks = breaks)
-# )
+check <- st_read("Tree_dem_env.shp", quiet = TRUE)
+t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")
+
+#join selected environment columns to demographics
+data <- as.data.frame(check)
+data_sub <- data[,c('GEOID20','men_tmp','mn_tmp_s', "mn_pm25", "mn_pm25_s")]
+jn <- data_sub  %>% inner_join(as.data.frame(t)) %>% st_sf(sf_column_name = 'geometry') 
+jn %<>% st_sf(sf_column_name = 'geometry')
+
+#Standardize the coordinate system used
+epsg_wgs84 <- 4326
+jn <- jn %>% st_transform(epsg_wgs84)
+library(ggpubr)
+
+# plot
+# some color reference web: https://ggplot2-book.org/scale-colour.html
+pacman::p_load(paletteer)
+temp <- ggplot(data = jn, aes(fill = men_tmp)) +
+  geom_sf() +
+  labs(title="temp") +
+  paletteer::scale_fill_paletteer_c("viridis::plasma")  +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
+s_temp <- ggplot(data = jn, aes(fill = mn_tmp_s)) +
+  geom_sf() +
+  labs(title="Smooth_temp") +
+  scale_fill_paletteer_c("viridis::plasma") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
+ggarrange(temp, s_temp, ncol=2, common.legend = TRUE)
+
+# another choice of color to fill the temperature
+temp <- ggplot(data = jn, aes(fill = men_tmp)) +
+  geom_sf() +
+  labs(title="temp") +
+  scale_fill_distiller(palette = "YlOrBr") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
+
+s_temp <- ggplot(data = jn, aes(fill = mn_tmp_s)) +
+  geom_sf() +
+  labs(title="Smooth_temp") +
+  scale_fill_distiller(palette = "YlOrBr") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
+ggarrange(temp, s_temp, ncol=2, common.legend = TRUE)
+
+
+pm25 <- ggplot(data = jn, aes(fill = mn_pm25)) +
+  geom_sf() +
+  labs(title="PM2.5") +
+  scale_fill_distiller(palette = "Greys") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
+s_pm25 <- ggplot(data = jn, aes(fill = mn_pm25_s)) +
+  geom_sf() +
+  labs(title="Smooth_PM2.5") +
+  scale_fill_distiller(palette = "Greys") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
+ggarrange(pm25, s_pm25, ncol=2, common.legend = TRUE)
+
+
 ```
 
 
@@ -287,6 +326,8 @@ https://stackoverflow.com/questions/49032217/inner-joining-two-sf-objects-by-non
 https://www.youtube.com/watch?v=J-IB4_QL7Oc
 
 http://www.goldensoftware.com/variogramTutorial.pdf
+
+https://ggplot2-book.org/scale-colour.html
 
 
 
