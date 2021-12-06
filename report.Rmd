@@ -293,13 +293,13 @@ ggarrange(temp, s_temp, ncol=2, common.legend = TRUE)
 temp <- ggplot(data = jn, aes(fill = men_tmp)) +
   geom_sf() +
   labs(title="temp") +
-  scale_fill_distiller(palette = "YlOrBr") +
+  scale_fill_distiller(palette = "YlOrBr",trans = "reverse") +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 
 s_temp <- ggplot(data = jn, aes(fill = mn_tmp_s)) +
   geom_sf() +
   labs(title="Smooth_temp") +
-  scale_fill_distiller(palette = "YlOrBr") +
+  scale_fill_distiller(palette = "YlOrBr",trans = "reverse") +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 ggarrange(temp, s_temp, ncol=2, common.legend = TRUE)
 
@@ -307,12 +307,12 @@ ggarrange(temp, s_temp, ncol=2, common.legend = TRUE)
 pm25 <- ggplot(data = jn, aes(fill = mn_pm25)) +
   geom_sf() +
   labs(title="PM2.5") +
-  scale_fill_distiller(palette = "Greys") +
+  scale_fill_distiller(palette = "Greys",trans = "reverse") +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 s_pm25 <- ggplot(data = jn, aes(fill = mn_pm25_s)) +
   geom_sf() +
   labs(title="Smooth_PM2.5") +
-  scale_fill_distiller(palette = "Greys") +
+  scale_fill_distiller(palette = "Greys",trans = "reverse") +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
 ggarrange(pm25, s_pm25, ncol=2, common.legend = TRUE)
 
