@@ -15,7 +15,7 @@ library(sf)
 library(tidyverse)
 library(magrittr)
 library(arm)
-library(scico)
+#library(scico)
 ```
 
 # combine the data
@@ -191,6 +191,7 @@ names(jn)
 [25] "MnrPrc_s"  "MnrPrc_r"  "MdGrTx_t"  "MdGrTx_s"  "MdGrTx_r"  "Mdn_Inc_t" "Mdn_Inc_s" "Mdn_Inc_r"
 [33] "geometry" 
 
+# mean_pm25
 ```{r}
 #Calculate variograms for mean_pm25
 v <- variogram(mean_pm25 ~ 1 , jn)
@@ -198,26 +199,7 @@ v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add t
 v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2]) #Create spherical variograms
 #Plot the variograms
 op <- par(mfrow = c(1, 2))
-h <- seq(0, 26000, length = 1000)
-
-plot(v$dist, v$gamma,  pch = 19, col = "gray",
-     xlab = "distance", ylab = "semivariogram") # main = "Minority Percentage"
-lines(h, v_f(h))
-abline(v = v_fit$range[2], col = "gray")
-plot(h, sum(v_fit$psill) - v_f(h), type = "l",
-     xlab = "distance", ylab = "covariogram",
-     ylim = c(0, sum(v_fit$psill)))
-points(0, sum(v_fit$psill), pch = 19)
-abline(v = v_fit$range[2], col = "gray")
-par(op)
-
-#Calculate variograms for mean_temp
-v <- variogram(mean_temp ~ 1, jn)
-v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
-v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2]) #Create spherical variograms
-#Plot the variograms
-op <- par(mfrow = c(1, 2))
-h <- seq(0, 26000, length = 1000)
+h <- seq(0, 8, length = 1000)
 
 plot(v$dist, v$gamma,  pch = 19, col = "gray",
      xlab = "distance", ylab = "semivariogram") # main = "Minority Percentage"
@@ -231,7 +213,6 @@ abline(v = v_fit$range[2], col = "gray")
 par(op)
 
 # check smoothing:
-
 ks <- kriging_smooth_spherical(mean_pm25 ~ 1 , jn)
 y <- jn$mean_pm25
 op <- par(mfrow = c(1, 2))
@@ -241,6 +222,35 @@ points(y, pch = 19, col = "gray")
 abline(h = ks$prior_mean)
 par(op)
 
+rbind(ks$prior_coef, ks$prior_coef_se) #to see coef values
+
+
+
+
+```
+
+# mean_temp
+```{r}
+#Calculate variograms for mean_temp
+v <- variogram(mean_temp ~ 1, jn)
+v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
+v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2]) #Create spherical variograms
+#Plot the variograms
+op <- par(mfrow = c(1, 2))
+h <- seq(0, 8, length = 1000)
+
+plot(v$dist, v$gamma,  pch = 19, col = "gray",
+     xlab = "distance", ylab = "semivariogram") # main = "Minority Percentage"
+lines(h, v_f(h))
+abline(v = v_fit$range[2], col = "gray")
+plot(h, sum(v_fit$psill) - v_f(h), type = "l",
+     xlab = "distance", ylab = "covariogram",
+     ylim = c(0, sum(v_fit$psill)))
+points(0, sum(v_fit$psill), pch = 19)
+abline(v = v_fit$range[2], col = "gray")
+par(op)
+
+# check smoothing
 ks2 <- kriging_smooth_spherical(mean_temp ~ 1 , jn)
 y2 <- jn$mean_temp
 op <- par(mfrow = c(1, 2))
@@ -249,6 +259,12 @@ plot(ks2$smooth, type = "l", ylab = "y")
 points(y2, pch = 19, col = "gray")
 abline(h = ks2$prior_mean)
 par(op)
+
+rbind(ks$prior_coef, ks$prior_coef_se) #to see coef values
+
+```
+
+```{r}
 #Add smoothing and residuals to datasets
 jn$mean_pm25_smooth <- ks$smooth
 jn$mean_pm25_resid <- jn$mean_pm25 - jn$mean_pm25_smooth 
@@ -274,12 +290,12 @@ g4 <- ggplot(jn) + geom_sf(aes(fill = mean_temp_smooth, color = mean_temp_smooth
   scale_fill_viridis_c(direction = -1)+
   scale_color_viridis_c(direction = -1)
 ggarrange(g3,g4,common.legend = TRUE)
-
 ```
+
 
 ```{r}
 #Check if Tree Canopy can be predicted from ...
-formula <- qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + mean_pm25_smooth + mean_pm25_resid +mean_temp_smooth + mean_temp_resid)
+formula <- qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + mean_pm25_smooth + mean_pm25_resid +mean_temp_smooth + mean_temp_resid
 dt <- jn
 
 v <- variogram(formula, dt) # do we need add residual? do we need add "1+", and what I heard is log(TotalPp) or log(PpDnsty)? 
@@ -307,25 +323,15 @@ par(op)
 
 rbind(ks$prior_coef, ks$prior_coef_se) #to see coef values
 
-<<<<<<< HEAD
+# send_shape <- jn
+# st_write(send_shape, "Tree_dem_env.shp")
 
- send_shape <- jn
-# 
- st_write(send_shape, "Tree_dem_env.shp")
-# # 
 check <- st_read("Tree_dem_env.shp", quiet = TRUE)
 t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")
-=======
-#  send_shape <- jn
-#  st_write(send_shape, "Tree_dem_env.shp")
-# check <- st_read("Tree_dem_env.shp", quiet = TRUE)
->>>>>>> faa38f54486cc45573f5ce9884f808177228a4c6
+
 
 ```
 
-
-```{r}
-```
 ```{r}
 #join selected environment columns to demographics
 data <- as.data.frame(check)
@@ -343,6 +349,4 @@ geom_sf()+paletteer::scale_fill_paletteer_c("viridis::plasma")
 
 temp
 ```
-
-
 
