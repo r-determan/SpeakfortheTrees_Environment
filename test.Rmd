@@ -323,8 +323,12 @@ par(op)
 
 rbind(ks$prior_coef, ks$prior_coef_se) #to see coef values
 
-# send_shape <- jn
-# st_write(send_shape, "Tree_dem_env.shp")
+# add tree canopy smooth
+jn$mean_cnp_smooth <- ks$smooth
+jn$mean_cnp_resid <- jn$Tre_Cnp - jn$mean_cnp_smooth 
+
+send_shape <- jn
+st_write(send_shape, "Tree_dem_env.shp")
 
 check <- st_read("Tree_dem_env.shp", quiet = TRUE)
 t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")

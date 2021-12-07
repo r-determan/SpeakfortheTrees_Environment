@@ -265,7 +265,7 @@ t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")
 
 #join selected environment columns to demographics
 data <- as.data.frame(check)
-data_sub <- data[,c('GEOID20','men_tmp','mn_tmp_s', "mn_pm25", "mn_pm25_s")]
+data_sub <- data[,c('GEOID20','men_tmp','mn_tmp_s', "mn_pm25", "mn_pm25_s","mn_cnp_s","Tre_Cnp","mn_cnp_r")]
 jn <- data_sub  %>% inner_join(as.data.frame(t)) %>% st_sf(sf_column_name = 'geometry') 
 jn %<>% st_sf(sf_column_name = 'geometry')
 
@@ -294,13 +294,13 @@ temp <- ggplot(data = jn, aes(fill = men_tmp)) +
   geom_sf() +
   labs(title="temp") +
   scale_fill_distiller(palette = "YlOrBr",trans = "reverse") +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
 
 s_temp <- ggplot(data = jn, aes(fill = mn_tmp_s)) +
   geom_sf() +
   labs(title="Smooth_temp") +
   scale_fill_distiller(palette = "YlOrBr",trans = "reverse") +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
 s_temp <- ggarrange(temp, s_temp, ncol=2, common.legend = TRUE, legend = "right")
 
 
@@ -315,13 +315,26 @@ s_pm25 <- ggplot(data = jn, aes(fill = mn_pm25_s)) +
   labs(title="Smooth_PM2.5") +
   scale_fill_distiller(palette = "Greys",trans = "reverse") +
  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
-
-
 pm25 <- ggarrange(pm25, s_pm25, ncol=2, common.legend = TRUE, legend = "right")
 
+cnp <- ggplot(data = jn, aes(fill = Tre_Cnp)) +
+  geom_sf() +
+  labs(title="Tree_Canopy") +
+  scale_fill_distiller(palette = "Greens",trans = "reverse") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) + theme_void()
+
+s_cnp <- ggplot(data = jn, aes(fill = mn_cnp_s)) +
+  geom_sf() +
+  labs(title="Smooth_Tree_Canopy") +
+  scale_fill_distiller(palette = "Greens",trans = "reverse") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black"))  + theme_void()
+s_cnp <- ggarrange(cnp, s_cnp, ncol=2, common.legend = TRUE, legend = "right")
+s_temp
 pm25
+s_cnp 
 ggsave("Figure3_blockTemp.png", s_temp)
 ggsave("Figure4_blockPM25.png", pm25, width = 16, height = 9)
+ggsave("Figure5_blockTreecnp.png", s_cnp, width = 16, height = 9)
 ```
 
 
