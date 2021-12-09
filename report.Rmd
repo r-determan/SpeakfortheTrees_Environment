@@ -266,6 +266,7 @@ t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")
 #join selected environment columns to demographics
 data <- as.data.frame(check)
 data_sub <- data[,c('GEOID20','men_tmp','mn_tmp_s', "mn_pm25", "mn_pm25_s","mn_cnp_s","Tre_Cnp","mn_cnp_r")]
+data_sub <- data %>% dplyr::select(- 'geometry')
 jn <- data_sub  %>% inner_join(as.data.frame(t)) %>% st_sf(sf_column_name = 'geometry') 
 jn %<>% st_sf(sf_column_name = 'geometry')
 
@@ -273,6 +274,7 @@ jn %<>% st_sf(sf_column_name = 'geometry')
 epsg_wgs84 <- 4326
 jn <- jn %>% st_transform(epsg_wgs84)
 library(ggpubr)
+
 
 # plot
 # some color reference web: https://ggplot2-book.org/scale-colour.html

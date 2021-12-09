@@ -29,7 +29,7 @@ env <- st_centroid(env) # Calculate centroids
 # ggplot(env) + geom_sf()
 
 
-dem <- st_read("Demographics_smoothed_addtre_cnp/DemographicsSmoothed_trecnp.shp")
+dem <- st_read("DemographicsSmoothed2.shp")
 dem <- st_centroid(dem)
 #https://stackoverflow.com/questions/49032217/inner-joining-two-sf-objects-by-non-sf-column
 
@@ -185,16 +185,19 @@ kriging_smooth_spherical <- function (formula, data, ...) {
 ```
 
 names(jn)
- [1] "GEOID20"   "mean_temp" "mean_pm25" "OBJECTI"   "STATEFP"   "COUNTYF"   "TRACTCE"   "NAME20" 
- [9] "NAMELSA"   "MTFCC20"   "FUNCSTA"   "ALAND20"   "AWATER2"   "INTPTLA"   "INTPTLO"   "Sh_STA_"
-[17] "Sh_STL_"   "Tre_Cnp"   "TotalPp"   "MinrPrc"   "PpDnsty"   "MedGrTx"   "Mdn_Inc"   "MnrPrc_t" 
-[25] "MnrPrc_s"  "MnrPrc_r"  "MdGrTx_t"  "MdGrTx_s"  "MdGrTx_r"  "Mdn_Inc_t" "Mdn_Inc_s" "Mdn_Inc_r"
-[33] "geometry" 
+ [1] "GEOID20"   "mean_temp" "mean_pm25" "OBJECTI"   "STATEFP"   "COUNTYF"   "TRACTCE"  
+ [8] "NAME20"    "NAMELSA"   "MTFCC20"   "FUNCSTA"   "ALAND20"   "AWATER2"   "INTPTLA"  
+[15] "INTPTLO"   "Sh_STA_"   "Sh_STL_"   "Tre_Cnp"   "TotalPp"   "MinrPrc"   "PpDnsty"  
+[22] "MedGrTx"   "Mdn_Inc"   "MnrPrc_t"  "MnrPrc_s"  "MnrPrc_r"  "MdGrTx_t"  "MdGrTx_s" 
+[29] "MdGrTx_r"  "Mdn_Inc_t" "Mdn_Inc_s" "Mdn_Inc_r" "tree_t"    "tr_smth"   "tre_rsd"  
+[36] "geometry"
 
 # mean_pm25
 ```{r}
 #Calculate variograms for mean_pm25
-v <- variogram(mean_pm25 ~ 1+ Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty)  , jn)
+formula <- mean_pm25 ~ 1 + Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + tr_smth + tre_rsd
+dt <- jn
+v <- variogram(formula, dt)
 v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
 v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2]) #Create spherical variograms
 #Plot the variograms
@@ -213,7 +216,7 @@ abline(v = v_fit$range[2], col = "gray")
 par(op)
 
 # check smoothing:
-ks <- kriging_smooth_spherical(mean_pm25 ~ 1+ Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty)  , jn)
+ks <- kriging_smooth_spherical(formula, dt)
 y <- jn$mean_pm25
 op <- par(mfrow = c(1, 2))
 plot(ks$smooth, y); abline(0, 1, col = "red")
@@ -224,15 +227,37 @@ par(op)
 
 rbind(ks$prior_coef, ks$prior_coef_se) #to see coef values
 
+jn$mean_pm25_smooth <- ks$smooth
+jn$mean_pm25_resid <- jn$mean_pm25 - jn$mean_pm25_smooth 
+# 
+# t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")
+# data <- as.data.frame(check)
+# jn <- jn  %>% inner_join(as.data.frame(t)) %>% st_sf(sf_column_name = 'geometry') 
 
-
-
+# pm25 <- ggplot(data = jn, aes(fill = mean_pm25)) +
+#   geom_sf() +
+#   labs(title="PM2.5") +
+#   scale_fill_distiller(palette = "Greys",trans = "reverse") +
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
+# 
+# s_pm25 <- ggplot(data = jn, aes(fill = mean_pm25_smooth)) +
+#   geom_sf() +
+#   labs(title="Smooth_PM2.5") +
+#   scale_fill_distiller(palette = "Greys",trans = "reverse") +
+#  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
+# library(ggpubr)
+# pm25 <- ggarrange(pm25, s_pm25, ncol=2, common.legend = TRUE, legend = "right")
+# pm25
 ```
 
 # mean_temp
 ```{r}
 #Calculate variograms for mean_temp
-v <- variogram(mean_temp ~ 1 + Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty)  , jn)
+
+formula <- mean_temp ~ 1 + Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + tr_smth + tre_rsd
+dt <- jn
+
+v <- variogram(formula , dt)
 v_fit <- fit.variogram(v, vgm("Sph")) #'vgm':generate a variogram model or add to an existing model.
 v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2]) #Create spherical variograms
 #Plot the variograms
@@ -251,7 +276,7 @@ abline(v = v_fit$range[2], col = "gray")
 par(op)
 
 # check smoothing
-ks2 <- kriging_smooth_spherical(mean_temp ~ 1+ Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty)  , jn)
+ks2 <- kriging_smooth_spherical(formula , dt)
 y2 <- jn$mean_temp
 op <- par(mfrow = c(1, 2))
 plot(ks2$smooth, y2); abline(0, 1, col = "red")
@@ -262,14 +287,60 @@ par(op)
 
 rbind(ks2$prior_coef, ks2$prior_coef_se) #to see coef values
 
+jn$mean_temp_smooth <- ks2$smooth
+jn$mean_temp_resid <- jn$mean_temp - jn$mean_temp_smooth 
 ```
+
+
+
+
+```{r}
+
+check <- st_read("Tree_dem_env.shp", quiet = TRUE)
+t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")
+
+#join selected environment columns to demographics
+data <- as.data.frame(check)
+data_sub <- data[,c('GEOID20','men_tmp','mn_tmp_s', "mn_pm25", "mn_pm25_s","mn_cnp_s","Tre_Cnp","mn_cnp_r")]
+data_sub <- data %>% dplyr::select(- 'geometry')
+jn <- data_sub  %>% inner_join(as.data.frame(t)) %>% st_sf(sf_column_name = 'geometry') 
+jn %<>% st_sf(sf_column_name = 'geometry')
+
+#Standardize the coordinate system used
+epsg_wgs84 <- 4326
+jn <- jn %>% st_transform(epsg_wgs84)
+library(ggpubr)
+
+
+# After-Smoothing Map & Kriging Predicted Map for Mental Health
+jn$temp_refit <- ks2$smooth
+
+t$temp_refit[t$GEOID20 %in% newhealth$GEOID20] <- newhealth$temp_refit[newhealth$GEOID20 %in% t$GEOID20]
+ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = temp_refit), data=na.omit(t)) + 
+  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Original Model for Mental Health')
+grid <- st_centroid(t[is.na(t$temp_refit),]) 
+pred_MH <-  krige(temp_refit ~1, newhealth, grid$geometry, model = v_fit)
+t$temp_refit[is.na(t$temp_refit)] <- pred_MH$var1.pred
+ggplot(data = t) + geom_sf(color = 'grey') + geom_sf(aes(fill = temp_refit)) + 
+  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Refitted Model for Mental Health ')
+
+
+# After-Smoothing Map & Kriging Predicted Map for Mental Health
+newhealth$temp_refit <- temp_refit$smooth
+t$temp_refit[t$GEOID20 %in% newhealth$GEOID20] <- newhealth$temp_refit[newhealth$GEOID20 %in% t$GEOID20]
+ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = temp_refit), data=na.omit(t)) + 
+  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Original Model for Mental Health')
+grid <- st_centroid(t[is.na(t$temp_refit),]) 
+pred_MH <-  krige(temp_refit ~1, newhealth, grid$geometry, model = v_fit)
+t$temp_refit[is.na(t$temp_refit)] <- pred_MH$var1.pred
+ggplot(data = t) + geom_sf(color = 'grey') + geom_sf(aes(fill = temp_refit)) + 
+  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Refitted Model for Mental Health ')
+```
+
 
 ```{r}
 #Add smoothing and residuals to datasets
-jn$mean_pm25_smooth <- ks$smooth
-jn$mean_pm25_resid <- jn$mean_pm25 - jn$mean_pm25_smooth 
-jn$mean_temp_smooth <- ks2$smooth
-jn$mean_temp_resid <- jn$mean_temp - jn$mean_temp_smooth 
+
 
 # plot
 g1 <- ggplot(jn) + geom_sf(aes(fill = mean_pm25, color = mean_pm25)) + 
@@ -290,42 +361,46 @@ g4 <- ggplot(jn) + geom_sf(aes(fill = mean_temp_smooth, color = mean_temp_smooth
   scale_fill_viridis_c(direction = -1)+
   scale_color_viridis_c(direction = -1)
 ggarrange(g3,g4,common.legend = TRUE)
+
+
+
+
 ```
 
 
 ```{r}
-#Check if Tree Canopy can be predicted from ...
-formula <- qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + mean_pm25_smooth + mean_pm25_resid +mean_temp_smooth + mean_temp_resid
-dt <- jn
-
-v <- variogram(formula, dt) # do we need add residual? do we need add "1+", and what I heard is log(TotalPp) or log(PpDnsty)? 
-
-v_fit <- fit.variogram(v, vgm("Sph"))
-v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
-
-op <- par(mfrow = c(1, 2))
-h <- seq(0, 200, length = 1000) 
-
-plot(v$dist, v$gamma,  pch = 19, col = "gray",
-     xlab = "distance", ylab = "semivariogram", main = "Tree Canopy")
-lines(h, v_f(h))
-abline(v = v_fit$range[2], col = "gray")
-
-# check smoothing:
-ks <- kriging_smooth_spherical(formula, dt)
-y <- qlogis(jn$Tre_Cnp)
-op <- par(mfrow = c(1, 2))
-plot(ks$smooth, y); abline(0, 1, col = "red") 
-plot(ks$smooth, type = "l", ylab = "y")
-points(y, pch = 19, col = "gray") 
-abline(h = ks$prior_coef) 
-par(op)
-
-rbind(ks$prior_coef, ks$prior_coef_se) #to see coef values
-
-# add tree canopy smooth
-jn$mean_cnp_smooth <- ks$smooth
-jn$mean_cnp_resid <- jn$Tre_Cnp - jn$mean_cnp_smooth 
+# #Check if Tree Canopy can be predicted from ...
+# formula <- qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + mean_pm25_smooth + mean_pm25_resid +mean_temp_smooth + mean_temp_resid
+# dt <- jn
+# 
+# v <- variogram(formula, dt) # do we need add residual? do we need add "1+", and what I heard is log(TotalPp) or log(PpDnsty)? 
+# 
+# v_fit <- fit.variogram(v, vgm("Sph"))
+# v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
+# 
+# op <- par(mfrow = c(1, 2))
+# h <- seq(0, 200, length = 1000) 
+# 
+# plot(v$dist, v$gamma,  pch = 19, col = "gray",
+#      xlab = "distance", ylab = "semivariogram", main = "Tree Canopy")
+# lines(h, v_f(h))
+# abline(v = v_fit$range[2], col = "gray")
+# 
+# # check smoothing:
+# ks <- kriging_smooth_spherical(formula, dt)
+# y <- qlogis(jn$Tre_Cnp)
+# op <- par(mfrow = c(1, 2))
+# plot(ks$smooth, y); abline(0, 1, col = "red") 
+# plot(ks$smooth, type = "l", ylab = "y")
+# points(y, pch = 19, col = "gray") 
+# abline(h = ks$prior_coef) 
+# par(op)
+# 
+# rbind(ks$prior_coef, ks$prior_coef_se) #to see coef values
+# 
+# # add tree canopy smooth
+# jn$mean_cnp_smooth <- ks$smooth
+# jn$mean_cnp_resid <- jn$Tre_Cnp - jn$mean_cnp_smooth 
 
 send_shape <- jn
 st_write(send_shape, "Tree_dem_env.shp")
