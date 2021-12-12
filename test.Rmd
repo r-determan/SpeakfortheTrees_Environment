@@ -390,18 +390,46 @@ jn$temp_refit <- ks2$smooth
 t$temp_refit[t$GEOID20 %in% jn$GEOID20] <- jn$temp_refit[jn$GEOID20 %in% t$GEOID20]
 
 
-ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = temp_refit), data=na.omit(t)) + 
-   scale_fill_distiller(palette = "YlOrBr",trans = "reverse", name = "Temp Proxy")
-grid <- st_centroid(t[is.na(t$temp_refit),]) 
-
+temp <- ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = temp_refit), data=na.omit(t)) + 
+  geom_sf() +
+  labs(title="temp") +
+  scale_fill_distiller(palette = "YlOrBr",trans = "reverse") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
 
 #formula <- mean_temp ~ 1 + Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + tr_smth + tre_rsd
 #pred_MH <-  kriging_smooth_spherical(formula, dt) # Error in .local(formula, locations, ...) : not all sf::st_crs(locations) == sf::st_crs(newdata) are TRUE
 
-
+grid <- st_centroid(t[is.na(t$temp_refit),]) 
 t$temp_refit[is.na(t$temp_refit)] <- jn$temp_refit
-ggplot(data = t) + geom_sf(aes(fill = temp_refit)) + 
-  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Modeled Temperature')
+s_temp <- ggplot(data = t) + geom_sf(aes(fill = temp_refit)) + 
+  labs(title="Smooth_temp") +
+  scale_fill_distiller(palette = "YlOrBr",trans = "reverse") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
+ggarrange(temp, s_temp, ncol=2, common.legend = TRUE, legend = "right")
+
+
+
+
+# After-Smoothing Map & Kriging Predicted Map for PM25
+jn$pm25_refit <- ks$smooth
+
+t$pm25_refit[t$GEOID20 %in% jn$GEOID20] <- jn$pm25_refit[jn$GEOID20 %in% t$GEOID20]
+
+
+pm25 <- ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = pm25_refit), data=na.omit(t)) + 
+  geom_sf() +
+  labs(title="PM2.5") +
+  scale_fill_distiller(palette = "Greys",trans = "reverse") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
+
+grid <- st_centroid(t[is.na(t$pm25_refit),]) 
+t$pm25_refit[is.na(t$pm25_refit)] <- jn$pm25_refit
+s_pm25 <- ggplot(data = t) + geom_sf(aes(fill = pm25_refit)) + 
+  labs(title="Smooth_PM2.5") +
+  scale_fill_distiller(palette = "Greys",trans = "reverse") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
+ggarrange(pm25, s_pm25, ncol=2, common.legend = TRUE, legend = "right")
+
 
 # the code from Health group
 # After-Smoothing Map & Kriging Predicted Map for Mental Health
