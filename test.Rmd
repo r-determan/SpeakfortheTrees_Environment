@@ -367,7 +367,6 @@ ggarrange(g3,g4,common.legend = TRUE)
 # polygan plot: before-and-after smooth
 
 ```{r}
-
 check <- st_read("Tree_dem_env.shp", quiet = TRUE)
 t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")
 
@@ -389,25 +388,32 @@ library(ggpubr)
 jn$temp_refit <- ks2$smooth
 
 t$temp_refit[t$GEOID20 %in% jn$GEOID20] <- jn$temp_refit[jn$GEOID20 %in% t$GEOID20]
+
+
 ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = temp_refit), data=na.omit(t)) + 
-  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Original Model for Mental Health')
+   scale_fill_distiller(palette = "YlOrBr",trans = "reverse", name = "Temp Proxy")
 grid <- st_centroid(t[is.na(t$temp_refit),]) 
-pred_MH <-  krige(temp_refit ~ 1, jn, grid$geometry, model = v_fit) # Error in .local(formula, locations, ...) : not all sf::st_crs(locations) == sf::st_crs(newdata) are TRUE
-t$temp_refit[is.na(t$temp_refit)] <- pred_MH$var1.pred
-ggplot(data = t) + geom_sf(color = 'grey') + geom_sf(aes(fill = temp_refit)) + 
-  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Refitted Model for Mental Health ')
+
+
+#formula <- mean_temp ~ 1 + Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + tr_smth + tre_rsd
+#pred_MH <-  kriging_smooth_spherical(formula, dt) # Error in .local(formula, locations, ...) : not all sf::st_crs(locations) == sf::st_crs(newdata) are TRUE
+
+
+t$temp_refit[is.na(t$temp_refit)] <- jn$temp_refit
+ggplot(data = t) + geom_sf(aes(fill = temp_refit)) + 
+  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Modeled Temperature')
 
 # the code from Health group
 # After-Smoothing Map & Kriging Predicted Map for Mental Health
-newhealth$ks_mh_refit <- ks_mh_refit$smooth
-tract7$ks_mh_refit[tract7$GEOID20 %in% newhealth$GEOID20] <- newhealth$ks_mh_refit[newhealth$GEOID20 %in% tract7$GEOID20]
-ggplot() + geom_sf(color = 'grey', data = tract7) + geom_sf(aes(fill = ks_mh_refit), data=na.omit(tract7)) + 
-  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Original Model for Mental Health')
-grid <- st_centroid(tract7[is.na(tract7$ks_mh_refit),]) 
-pred_MH <-  krige(ks_mh_refit ~1, newhealth, grid$geometry, model = v_fit)
-tract7$ks_mh_refit[is.na(tract7$ks_mh_refit)] <- pred_MH$var1.pred
-ggplot(data = tract7) + geom_sf(color = 'grey') + geom_sf(aes(fill = ks_mh_refit)) + 
-  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Refitted Model for Mental Health ')
+# newhealth$ks_mh_refit <- ks_mh_refit$smooth
+# tract7$ks_mh_refit[tract7$GEOID20 %in% newhealth$GEOID20] <- newhealth$ks_mh_refit[newhealth$GEOID20 %in% tract7$GEOID20]
+# ggplot() + geom_sf(color = 'grey', data = tract7) + geom_sf(aes(fill = ks_mh_refit), data=na.omit(tract7)) + 
+#   scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Original Model for Mental Health')
+# grid <- st_centroid(tract7[is.na(tract7$ks_mh_refit),]) 
+# pred_MH <-  krige(ks_mh_refit ~1, newhealth, grid$geometry, model = v_fit)
+# tract7$ks_mh_refit[is.na(tract7$ks_mh_refit)] <- pred_MH$var1.pred
+# ggplot(data = tract7) + geom_sf(color = 'grey') + geom_sf(aes(fill = ks_mh_refit)) + 
+#   scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Refitted Model for Mental Health ')
 
 ```
 
