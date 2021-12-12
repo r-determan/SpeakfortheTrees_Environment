@@ -18,7 +18,7 @@ library(arm)
 #library(scico)
 ```
 
-# combine the data
+# combine the data from dem
 ```{r}
 env <- st_read("env.shp")
 env <- env[!is.na(env$mean_pm25),] #Remove rows with null columns
@@ -43,10 +43,9 @@ jn %<>% st_sf(sf_column_name = 'geometry')
 epsg_wgs84 <- 4326
 jn <- jn %>% st_transform(epsg_wgs84)
 ```
-
-```{r}
 #Spherical and Gaussian Variogram functions
 
+```{r}
 spherical_variogram <- function (n, ps, r) function (h) {
   h <- h / r
   n + ps * ifelse(h < 1, 1.5 * h - .5 * h ^ 3, 1)
@@ -156,9 +155,9 @@ kriging_smooth_spherical <- function (formula, data, ...) {
 
 ```
 
-
-```{r}
 # old kriging function
+```{r}
+
 # kriging_smooth_spherical <- function (formula, data, ...) {
 #   # formula <- mean_pm25 ~ 1
 #   # data <- env
@@ -192,7 +191,7 @@ names(jn)
 [29] "MdGrTx_r"  "Mdn_Inc_t" "Mdn_Inc_s" "Mdn_Inc_r" "tree_t"    "tr_smth"   "tre_rsd"  
 [36] "geometry"
 
-# mean_pm25
+# smooth mean_pm25
 ```{r}
 #Calculate variograms for mean_pm25
 formula <- mean_pm25 ~ 1 + Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + tr_smth + tre_rsd
@@ -250,7 +249,7 @@ jn$mean_pm25_resid <- jn$mean_pm25 - jn$mean_pm25_smooth
 # pm25
 ```
 
-# mean_temp
+# smooth mean_temp
 ```{r}
 #Calculate variograms for mean_temp
 
@@ -293,54 +292,9 @@ jn$mean_temp_resid <- jn$mean_temp - jn$mean_temp_smooth
 
 
 
-
-```{r}
-
-check <- st_read("Tree_dem_env.shp", quiet = TRUE)
-t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")
-
-#join selected environment columns to demographics
-data <- as.data.frame(check)
-data_sub <- data[,c('GEOID20','men_tmp','mn_tmp_s', "mn_pm25", "mn_pm25_s","mn_cnp_s","Tre_Cnp","mn_cnp_r")]
-data_sub <- data %>% dplyr::select(- 'geometry')
-jn <- data_sub  %>% inner_join(as.data.frame(t)) %>% st_sf(sf_column_name = 'geometry') 
-jn %<>% st_sf(sf_column_name = 'geometry')
-
-#Standardize the coordinate system used
-epsg_wgs84 <- 4326
-jn <- jn %>% st_transform(epsg_wgs84)
-library(ggpubr)
-
-
-# After-Smoothing Map & Kriging Predicted Map for Mental Health
-jn$temp_refit <- ks2$smooth
-
-t$temp_refit[t$GEOID20 %in% newhealth$GEOID20] <- newhealth$temp_refit[newhealth$GEOID20 %in% t$GEOID20]
-ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = temp_refit), data=na.omit(t)) + 
-  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Original Model for Mental Health')
-grid <- st_centroid(t[is.na(t$temp_refit),]) 
-pred_MH <-  krige(temp_refit ~1, newhealth, grid$geometry, model = v_fit)
-t$temp_refit[is.na(t$temp_refit)] <- pred_MH$var1.pred
-ggplot(data = t) + geom_sf(color = 'grey') + geom_sf(aes(fill = temp_refit)) + 
-  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Refitted Model for Mental Health ')
-
-
-# After-Smoothing Map & Kriging Predicted Map for Mental Health
-newhealth$temp_refit <- temp_refit$smooth
-t$temp_refit[t$GEOID20 %in% newhealth$GEOID20] <- newhealth$temp_refit[newhealth$GEOID20 %in% t$GEOID20]
-ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = temp_refit), data=na.omit(t)) + 
-  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Original Model for Mental Health')
-grid <- st_centroid(t[is.na(t$temp_refit),]) 
-pred_MH <-  krige(temp_refit ~1, newhealth, grid$geometry, model = v_fit)
-t$temp_refit[is.na(t$temp_refit)] <- pred_MH$var1.pred
-ggplot(data = t) + geom_sf(color = 'grey') + geom_sf(aes(fill = temp_refit)) + 
-  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Refitted Model for Mental Health ')
-```
-
-
+# pointplot: before-and-after smooth
 ```{r}
 #Add smoothing and residuals to datasets
-
 
 # plot
 g1 <- ggplot(jn) + geom_sf(aes(fill = mean_pm25, color = mean_pm25)) + 
@@ -363,18 +317,14 @@ g4 <- ggplot(jn) + geom_sf(aes(fill = mean_temp_smooth, color = mean_temp_smooth
 ggarrange(g3,g4,common.legend = TRUE)
 
 
-
-
 ```
 
-
+#  qlogis(Tre_Cnp) ~  
 ```{r}
-# #Check if Tree Canopy can be predicted from ...
 # formula <- qlogis(Tre_Cnp) ~  Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + mean_pm25_smooth + mean_pm25_resid +mean_temp_smooth + mean_temp_resid
 # dt <- jn
-# 
-# v <- variogram(formula, dt) # do we need add residual? do we need add "1+", and what I heard is log(TotalPp) or log(PpDnsty)? 
-# 
+
+# v <- variogram(formula, dt) 
 # v_fit <- fit.variogram(v, vgm("Sph"))
 # v_f <- spherical_variogram(v_fit$psill[1], v_fit$psill[2], v_fit$range[2])
 # 
@@ -401,31 +351,63 @@ ggarrange(g3,g4,common.legend = TRUE)
 # # add tree canopy smooth
 # jn$mean_cnp_smooth <- ks$smooth
 # jn$mean_cnp_resid <- jn$Tre_Cnp - jn$mean_cnp_smooth 
+```
 
-send_shape <- jn
-st_write(send_shape, "Tree_dem_env.shp")
+# output smooth data
+```{r}
 
-check <- st_read("Tree_dem_env.shp", quiet = TRUE)
-t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")
+# send_shape <- jn
+# st_write(send_shape, "Tree_dem_env.shp")
+# check <- st_read("Tree_dem_env.shp", quiet = TRUE)
+# t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")
 
 
 ```
 
+# polygan plot: before-and-after smooth
+
 ```{r}
+
+check <- st_read("Tree_dem_env.shp", quiet = TRUE)
+t <- st_read("Census2020_Tracts/Census2020_Tracts.shp")
+
 #join selected environment columns to demographics
 data <- as.data.frame(check)
-data_sub <- data[,c('GEOID20','men_tmp','mn_tmp_s', "mn_pm25", "mn_pm25_s")]
+data_sub <- data[,c('GEOID20','men_tmp','mn_tmp_s', "mn_pm25", "mn_pm25_s","tree_t","tre_rsd","tr_smth")]
+
+# data_sub <- data %>% dplyr::select(- 'geometry')
 jn <- data_sub  %>% inner_join(as.data.frame(t)) %>% st_sf(sf_column_name = 'geometry') 
 jn %<>% st_sf(sf_column_name = 'geometry')
 
 #Standardize the coordinate system used
 epsg_wgs84 <- 4326
 jn <- jn %>% st_transform(epsg_wgs84)
+library(ggpubr)
 
-pacman::p_load(paletteer)
-temp <- ggplot(data = jn, aes(fill = men_tmp))+
-geom_sf()+paletteer::scale_fill_paletteer_c("viridis::plasma")
 
-temp
+# After-Smoothing Map & Kriging Predicted Map for temp
+jn$temp_refit <- ks2$smooth
+
+t$temp_refit[t$GEOID20 %in% jn$GEOID20] <- jn$temp_refit[jn$GEOID20 %in% t$GEOID20]
+ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = temp_refit), data=na.omit(t)) + 
+  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Original Model for Mental Health')
+grid <- st_centroid(t[is.na(t$temp_refit),]) 
+pred_MH <-  krige(temp_refit ~ 1, jn, grid$geometry, model = v_fit) # Error in .local(formula, locations, ...) : not all sf::st_crs(locations) == sf::st_crs(newdata) are TRUE
+t$temp_refit[is.na(t$temp_refit)] <- pred_MH$var1.pred
+ggplot(data = t) + geom_sf(color = 'grey') + geom_sf(aes(fill = temp_refit)) + 
+  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Refitted Model for Mental Health ')
+
+# the code from Health group
+# After-Smoothing Map & Kriging Predicted Map for Mental Health
+newhealth$ks_mh_refit <- ks_mh_refit$smooth
+tract7$ks_mh_refit[tract7$GEOID20 %in% newhealth$GEOID20] <- newhealth$ks_mh_refit[newhealth$GEOID20 %in% tract7$GEOID20]
+ggplot() + geom_sf(color = 'grey', data = tract7) + geom_sf(aes(fill = ks_mh_refit), data=na.omit(tract7)) + 
+  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Original Model for Mental Health')
+grid <- st_centroid(tract7[is.na(tract7$ks_mh_refit),]) 
+pred_MH <-  krige(ks_mh_refit ~1, newhealth, grid$geometry, model = v_fit)
+tract7$ks_mh_refit[is.na(tract7$ks_mh_refit)] <- pred_MH$var1.pred
+ggplot(data = tract7) + geom_sf(color = 'grey') + geom_sf(aes(fill = ks_mh_refit)) + 
+  scale_fill_distiller(palette="Blues", trans = "reverse") + labs(title = 'Refitted Model for Mental Health ')
+
 ```
 
