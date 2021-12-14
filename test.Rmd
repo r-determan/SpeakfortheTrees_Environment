@@ -383,17 +383,26 @@ epsg_wgs84 <- 4326
 jn <- jn %>% st_transform(epsg_wgs84)
 library(ggpubr)
 
+```
 
+```{r}
+t <- t[t$GEOID20 != 25025980101,]
+names(t)
+```
+
+
+
+```{r}
 # After-Smoothing Map & Kriging Predicted Map for temp
 jn$temp_refit <- ks2$smooth
 
 t$temp_refit[t$GEOID20 %in% jn$GEOID20] <- jn$temp_refit[jn$GEOID20 %in% t$GEOID20]
+t$temp[t$GEOID20 %in% env$GEOID20] <-env$mean_temp[env$GEOID20 %in% t$GEOID20]
 
-
-temp <- ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = temp_refit), data=na.omit(t)) + 
+temp <- ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = temp), data=na.omit(t)) + 
   geom_sf() +
-  labs(title="temp") +
-  scale_fill_distiller(palette = "YlOrBr",trans = "reverse") +
+  labs(title="Temperature") +
+  scale_fill_distiller(palette = "YlOrBr",trans = "reverse", name = "Temp Proxy") +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
 
 #formula <- mean_temp ~ 1 + Mdn_Inc_s  + Mdn_Inc_r +log(PpDnsty) + tr_smth + tre_rsd
@@ -402,34 +411,43 @@ temp <- ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = temp_r
 grid <- st_centroid(t[is.na(t$temp_refit),]) 
 t$temp_refit[is.na(t$temp_refit)] <- jn$temp_refit
 s_temp <- ggplot(data = t) + geom_sf(aes(fill = temp_refit)) + 
-  labs(title="Smooth_temp") +
-  scale_fill_distiller(palette = "YlOrBr",trans = "reverse") +
+  labs(title="Modeled Temperature") +
+  scale_fill_distiller(palette = "YlOrBr",trans = "reverse", name = "Temp Proxy") +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
 ggarrange(temp, s_temp, ncol=2, common.legend = TRUE, legend = "right")
+ggsave("temp_final.png", width = 10, height = 5, units = "in")
+
+```
 
 
-
+```{r}
 
 # After-Smoothing Map & Kriging Predicted Map for PM25
 jn$pm25_refit <- ks$smooth
 
 t$pm25_refit[t$GEOID20 %in% jn$GEOID20] <- jn$pm25_refit[jn$GEOID20 %in% t$GEOID20]
+t$pm25[t$GEOID20 %in% env$GEOID20] <- env$mean_pm25[jn$GEOID20 %in% env$GEOID20]
+
+```
 
 
-pm25 <- ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = pm25_refit), data=na.omit(t)) + 
+
+
+```{r}
+pm25 <- ggplot() + geom_sf(color = 'grey', data = t) + geom_sf(aes(fill = pm25), data=na.omit(t)) + 
   geom_sf() +
-  labs(title="PM2.5") +
-  scale_fill_distiller(palette = "Greys",trans = "reverse") +
+  labs(title="PM 2.5") +
+  scale_fill_distiller(palette = "Greys",trans = "reverse", name = "PM 2.5") +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
 
 grid <- st_centroid(t[is.na(t$pm25_refit),]) 
 t$pm25_refit[is.na(t$pm25_refit)] <- jn$pm25_refit
 s_pm25 <- ggplot(data = t) + geom_sf(aes(fill = pm25_refit)) + 
-  labs(title="Smooth_PM2.5") +
-  scale_fill_distiller(palette = "Greys",trans = "reverse") +
+  labs(title="Modeled PM 2.5") +
+  scale_fill_distiller(palette = "Greys",trans = "reverse",name = "PM 2.5") +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(), axis.line = element_line(colour = "black")) +theme_void()
 ggarrange(pm25, s_pm25, ncol=2, common.legend = TRUE, legend = "right")
-
+ggsave("pm25_final.png", width = 10, height = 5, units = "in")
 
 # the code from Health group
 # After-Smoothing Map & Kriging Predicted Map for Mental Health
