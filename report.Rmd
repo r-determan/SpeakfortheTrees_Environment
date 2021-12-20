@@ -23,19 +23,17 @@ In the environment part, we try to relate the tree canopy to the pollution(PM2.5
 
 ### Data Source
 
-The dataset we used are from Landsat, which are in 30x30  meters resolution. We took surface temperature and PM2.5 into account. When we first got the data, they are both raster formats, only showing some pixels on it, so we used the average of them for every small area. And also we tried to find two parts of different areas’ data and combined them together in order to make our data cover the whole Boston area. 
-
-(Can some one add a discription about the time range of the data?)
-
+The data sets we used are from the Landsat satellite, which captures images in 30x30 meters resolution. We took surface temperature and PM 2.5 into account. When we first got the data, they are both in raster formats, only contain pixels, so we used the average pixel value for each census tract. We also tried to find two parts of different areas’ data and combined them together in order to make our data cover the whole Boston area. 
+The PM 2.5 data estimates particulate concentrations for 2018 using several remote sensing sources and models of particulate matter transport. The temperature data were collected by the Landsat satellite on August 22, 2021. On this day, cloud cover was estimated to be 7.5 %, and according to the National Weather Service, the average temperature at Logan Airport was 72.5 F. 
 ### Method
 
-We used the model from Demographic and combined it with tree canopy to analyze temperature and PM2.5.
+We used the model from the Demographic group and combined it with tree canopy to analyze temperature and PM2.5.
 
 1.Generate the plots which relate the canopy to Surface Temperature & PM2.5 using QGIS;
 
 2.Do Kriging for spatial mixed effects using R.
 ```{r}
-env <- st_read("env.shp")
+env <- st_read("env.shp", quiet = TRUE)
 env <- env[!is.na(env$mean_pm25),] #Remove rows with null columns
 env <- env[!is.na(env$mean_temp),] 
 env <- st_centroid(env) # Calculate centroids
@@ -44,7 +42,7 @@ env <- st_centroid(env) # Calculate centroids
 # ggplot(env) + geom_sf()
 
 
-dem <- st_read("DemographicsSmoothed2.shp")
+dem <- st_read("DemographicsSmoothed2.shp", quiet = TRUE)
 dem <- st_centroid(dem)
 #https://stackoverflow.com/questions/49032217/inner-joining-two-sf-objects-by-non-sf-column
 
@@ -127,22 +125,22 @@ kriging_smooth_spherical <- function (formula, data, ...) {
 knitr::include_graphics("Figure1_QGIS_PM25.png")
 ```
 
-In the north west of the map, we can see there are some trees over there because we can see  the color of the tree density is green but in the PM2.5 part, it is dark one which is unusual, we guess this happens because there are many people living there.
+In the north west of the map (Allston/Brighton), we can see there are few trees over there because we can see  the color of the tree density is green but in the PM2.5 part, it is dark one which is unusual, we guess this happens because there are many people living there.
 
-In the middle part, There are not many trees so the air pollution is serious, which makes sense.
+In the middle part (Back Bay and South End), there are not many trees so the air pollution is serious, which makes sense.
 
-In the south west of the map, the trees are so dense that there is less air pollution.
+In the south west of the map (West Roxbury and Roslindale), the trees are dense and there is less air pollution.
 
 If we look closely at what the images show us, we can see two strange things.
 
-(1) Around the middle,there is a park here. Although there are a lot of trees in the park, we think the air should be flowing, so there should also be a degree of air pollution because the surroundings have a high level of PM2.5. But the level is low here.
+(1) Around the middle, there is Franklin Park. Although there are a lot of trees in the park, we think the air should be flowing, so there should also be a degree of air pollution because the surroundings have a high level of PM2.5, but the PM 2.5 concentration is low here.
 
-(2) Second one is about the north east of the map—here is the airport. Generally speaking, the air problem at the airport should be serious, but maybe because the airport is in a coastal area, the air quality is not very serious.
+(2) In the north east of the map, there is the airport. Generally speaking, the air problem at the airport should be serious, but maybe because the airport is in a coastal area, the air quality is not very serious.
 
 
 ### PM2.5 Model
 
-Based on the spherical variogram assumptions and krigring smooth function, predictors obtained from demographic group such as smoothed income, income residual, logarithmic form of population density, smoothed tree canopy and tree canopy residual are included in the testing variogram assumptions and obtain the smoothed PM2.5 data. Including the residual predictors aims to avoid spatial confounding. In other words, similar variogram relationships between predictors will not be included when there is actually no variogram relationship between them. 
+Based on the spherical variogram assumptions and krigring smooth function, predictors obtained from demographic group such as smoothed income, income residual, logarithmic form of population density, smoothed tree canopy and tree canopy residual are included in the testing variogram assumptions and obtain the smoothed PM 2.5 data. Including the residual predictors aims to avoid spatial confounding. In other words, similar variogram relationships between predictors will not be included when there is actually no variogram relationship between them. 
 
 ```{r}
 #Calculate variograms for mean_pm25
