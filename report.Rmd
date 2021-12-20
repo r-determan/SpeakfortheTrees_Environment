@@ -24,14 +24,16 @@ In the environment part, we try to relate the tree canopy to the pollution(PM2.5
 ### Data Source
 
 The data sets we used are from the Landsat satellite, which captures images in 30x30 meters resolution. We took surface temperature and PM 2.5 into account. When we first got the data, they are both in raster formats, only contain pixels, so we used the average pixel value for each census tract. We also tried to find two parts of different areas’ data and combined them together in order to make our data cover the whole Boston area. 
+
 The PM 2.5 data estimates particulate concentrations for 2018 using several remote sensing sources and models of particulate matter transport. The temperature data were collected by the Landsat satellite on August 22, 2021. On this day, cloud cover was estimated to be 7.5 %, and according to the National Weather Service, the average temperature at Logan Airport was 72.5 F. 
+
 ### Method
 
 We used the model from the Demographic group and combined it with tree canopy to analyze temperature and PM2.5.
 
-1.Generate the plots which relate the canopy to Surface Temperature & PM2.5 using QGIS;
+1. Generate the plots which relate the canopy to Surface Temperature & PM2.5 using QGIS;
 
-2.Do Kriging for spatial mixed effects using R.
+2. Do Kriging for spatial mixed effects using R.
 ```{r}
 env <- st_read("env.shp", quiet = TRUE)
 env <- env[!is.na(env$mean_pm25),] #Remove rows with null columns
